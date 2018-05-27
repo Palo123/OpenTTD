@@ -107,7 +107,7 @@ void Train::ConsistChanged(ConsistChangeFlags allowed_changes)
 {
 	uint16 max_speed = UINT16_MAX;
 
-	assert(this->IsFrontEngine() || this->IsFreeWagon());
+	assert(this->IsFrontEngine() || this->IsFreeWagon() || this->IsFrontWagon());
 
 	const RailVehicleInfo *rvi_v = RailVehInfo(this->engine_type);
 	EngineID first_engine = this->IsFrontEngine() ? this->engine_type : INVALID_ENGINE;
@@ -416,12 +416,12 @@ int Train::GetCurrentMaxSpeed() const
 /** Update acceleration of the train from the cached power and weight. */
 void Train::UpdateAcceleration()
 {
-	assert(this->IsFrontEngine() || this->IsFreeWagon());
+	assert(this->IsFrontEngine() || this->IsFreeWagon() || this->IsFrontWagon());
 
 	uint power = this->gcache.cached_power;
 	uint weight = this->gcache.cached_weight;
 	assert(weight != 0);
-	this->acceleration = Clamp(power / weight * 4, 1, 255);
+	this->acceleration = Clamp(power / weight * 4, power > 0, 255);
 }
 
 /**
@@ -1631,7 +1631,8 @@ static Vehicle *TrainApproachingCrossingEnum(Vehicle *v, void *data)
 	if (v->type != VEH_TRAIN || (v->vehstatus & VS_CRASHED)) return nullptr;
 
 	Train *t = Train::From(v);
-	if (!t->IsFrontEngine()) return nullptr;
+
+	if (!t->IsPrimaryVehicle()) return nullptr;
 
 	TileIndex tile = *(TileIndex *)data;
 
@@ -1981,6 +1982,39 @@ CommandCost CmdForceTrainProceed(TileIndex tile, DoCommandFlag flags, uint32 p1,
 	return CommandCost();
 }
 
+static Train *DecoupleTrain(Train *v)
+{
+	//assert(false);
+	Train *first_param = NULL;
+	Train *u = v->GetNextUnit();
+	//ArrangeTrains(Train **dst_head, Train *dst, Train **src_head, Train *src, bool move_chain);	
+	ArrangeTrains(&first_param, NULL, &v, u, true);
+	if (u->IsEngine()) {
+		u->SetFrontEngine();
+		u->vehstatus &= ~VS_STOPPED;
+	} else {
+		u->SetFrontWagon();
+	}
+	UpdateTrainGroupID(u);
+	//assert(false);
+	if (u->orders.list == NULL && !OrderList::CanAllocateItem()) return u;
+	if (Order::CanAllocateItem(2)) {
+		Order *copy = new Order();
+	//assert(false);
+		copy->AssignOrder(v->current_order);
+	//assert(false);
+		InsertOrder(u, copy, 0);
+		Order *wait_for_couple = new Order();
+		wait_for_couple->MakeWaitCouple();
+		InsertOrder(u, wait_for_couple, 1);
+		//Order *wait_order = new Order();
+	}
+	return u;
+	//u->orders.list->InsertOrderAt(copy, 0);
+	//u->SetFrontEngine();
+	//assert(false);
+}
+
 /**
  * Try to find a depot nearby.
  * @param v %Train that wants a depot.
@@ -2214,7 +2248,9 @@ static void ClearPathReservation(const Train *v, TileIndex tile, Trackdir track_
 		/* If the new tile is not a further tile of the same station, we
 		 * clear the reservation for the whole platform. */
 		if (!IsCompatibleTrainStationTile(new_tile, tile)) {
-			SetRailStationPlatformReservation(tile, ReverseDiagDir(dir), false);
+			if (IsRailStationPlatformFree(v, tile, ReverseDiagDir(dir))) {
+				SetRailStationPlatformReservation(tile, ReverseDiagDir(dir), false);
+			}
 		}
 	} else {
 		/* Any other tile */
@@ -2228,7 +2264,7 @@ static void ClearPathReservation(const Train *v, TileIndex tile, Trackdir track_
  */
 void FreeTrainTrackReservation(const Train *v)
 {
-	assert(v->IsFrontEngine());
+	assert(v->IsPrimaryVehicle());
 
 	TileIndex tile = v->tile;
 	Trackdir  td = v->GetVehicleTrackdir();
@@ -2573,6 +2609,13 @@ static Track ChooseTrainTrack(Train *v, TileIndex tile, DiagDirection enterdir, 
 			v->tile == v->dest_tile))) {
 		orders.SwitchToNextOrder(true);
 	}
+	
+	if (v->current_order.IsType(OT_GOTO_COUPLE)) {
+		bool path_found = true;
+		TileIndex new_tile = res_dest.tile != INVALID_TILE ? res_dest.tile : tile;
+		
+		//Track next_track = ;
+	}
 
 	if (res_dest.tile != INVALID_TILE && !res_dest.okay) {
 		/* Pathfinders are able to tell that route was only 'guessed'. */
@@ -2666,7 +2709,7 @@ static Track ChooseTrainTrack(Train *v, TileIndex tile, DiagDirection enterdir, 
  */
 bool TryPathReserve(Train *v, bool mark_as_stuck, bool first_tile_okay)
 {
-	assert(v->IsFrontEngine());
+	assert(v->IsPrimaryVehicle());
 
 	/* We have to handle depots specially as the track follower won't look
 	 * at the depot tile itself but starts from the next tile. If we are still
@@ -2797,7 +2840,11 @@ int Train::UpdateSpeed()
 			return this->DoUpdateSpeed(this->acceleration * (this->GetAccelerationStatus() == AS_BRAKE ? -4 : 2), 0, this->GetCurrentMaxSpeed());
 
 		case AM_REALISTIC:
-			return this->DoUpdateSpeed(this->GetAcceleration(), this->GetAccelerationStatus() == AS_BRAKE ? 0 : 2, this->GetCurrentMaxSpeed());
+			int min_speed = this->GetAccelerationStatus() == AS_BRAKE ? 0 : 2;
+			if (this->IsFrontWagon()) {
+				min_speed = 0;
+			}
+			return this->DoUpdateSpeed(this->GetAcceleration(), min_speed, this->GetCurrentMaxSpeed());
 	}
 }
 
@@ -2808,8 +2855,19 @@ int Train::UpdateSpeed()
  */
 static void TrainEnterStation(Train *v, StationID station)
 {
+	//v->last_station_visited = station;
+	
+	Train *u = NULL;
+	if (v->current_order.GetDecouple() == 1) {
+		u = DecoupleTrain(v);
+		ProcessOrders(u);
+	} else {
+		u = v;
+	}
+	
 	v->last_station_visited = station;
-
+	u->last_station_visited = station;
+	
 	/* check if a train ever visited this station before */
 	Station *st = Station::Get(station);
 	if (!(st->had_vehicle_of_type & HVOT_TRAIN)) {
@@ -2817,28 +2875,31 @@ static void TrainEnterStation(Train *v, StationID station)
 		SetDParam(0, st->index);
 		AddVehicleNewsItem(
 			STR_NEWS_FIRST_TRAIN_ARRIVAL,
-			v->owner == _local_company ? NT_ARRIVAL_COMPANY : NT_ARRIVAL_OTHER,
-			v->index,
+			u->owner == _local_company ? NT_ARRIVAL_COMPANY : NT_ARRIVAL_OTHER,
+			u->index,
 			st->index
 		);
-		AI::NewEvent(v->owner, new ScriptEventStationFirstVehicle(st->index, v->index));
-		Game::NewEvent(new ScriptEventStationFirstVehicle(st->index, v->index));
+		AI::NewEvent(u->owner, new ScriptEventStationFirstVehicle(st->index, u->index));
+		Game::NewEvent(new ScriptEventStationFirstVehicle(st->index, u->index));
 	}
 
-	v->force_proceed = TFP_NONE;
-	SetWindowDirty(WC_VEHICLE_VIEW, v->index);
+	u->force_proceed = TFP_NONE;
+	SetWindowDirty(WC_VEHICLE_VIEW, u->index);
 
 	v->BeginLoading();
+	if (v->index != u->index) {
+		u->BeginLoading();
+	}
 
-	TriggerStationRandomisation(st, v->tile, SRT_TRAIN_ARRIVES);
-	TriggerStationAnimation(st, v->tile, SAT_TRAIN_ARRIVES);
+	TriggerStationRandomisation(st, u->tile, SRT_TRAIN_ARRIVES);
+	TriggerStationAnimation(st, u->tile, SAT_TRAIN_ARRIVES);
 }
 
 /* Check if the vehicle is compatible with the specified tile */
 static inline bool CheckCompatibleRail(const Train *v, TileIndex tile)
 {
 	return IsTileOwner(tile, v->owner) &&
-			(!v->IsFrontEngine() || HasBit(v->compatible_railtypes, GetRailType(tile)));
+			(!v->IsPrimaryVehicle() || HasBit(v->compatible_railtypes, GetRailType(tile)));
 }
 
 /** Data structure for storing engine speed changes of an acceleration type. */
@@ -3105,7 +3166,7 @@ bool TrainController(Train *v, Vehicle *nomove, bool reverse)
 					/* Not inside depot */
 
 					/* Reverse when we are at the end of the track already, do not move to the new position */
-					if (v->IsFrontEngine() && !TrainCheckIfLineEnds(v, reverse)) return false;
+					if (v->IsPrimaryVehicle() && !TrainCheckIfLineEnds(v, reverse)) return false;
 
 					uint32 r = VehicleEnterTile(v, gp.new_tile, gp.x, gp.y);
 					if (HasBit(r, VETS_CANNOT_ENTER)) {
@@ -3647,7 +3708,7 @@ static bool TrainCanLeaveTile(const Train *v)
  */
 static TileIndex TrainApproachingCrossingTile(const Train *v)
 {
-	assert(v->IsFrontEngine());
+	assert(v->IsPrimaryVehicle());
 	assert(!(v->vehstatus & VS_CRASHED));
 
 	if (!TrainCanLeaveTile(v)) return INVALID_TILE;
@@ -3769,6 +3830,7 @@ static bool TrainLocoHandler(Train *v, bool mode)
 	v->HandleLoading(mode);
 
 	if (v->current_order.IsType(OT_LOADING)) return true;
+	if (v->current_order.IsType(OT_WAIT_COUPLE)) return true;
 
 	if (CheckTrainStayInDepot(v)) return true;
 
@@ -3898,7 +3960,7 @@ bool Train::Tick()
 
 	this->tick_counter++;
 
-	if (this->IsFrontEngine()) {
+	if (this->IsPrimaryVehicle()) {
 		if (!(this->vehstatus & VS_STOPPED) || this->cur_speed > 0) this->running_ticks++;
 
 		this->current_order_time++;
@@ -3970,7 +4032,7 @@ void Train::OnNewDay()
 
 	if ((++this->day_counter & 7) == 0) DecreaseVehicleValue(this);
 
-	if (this->IsFrontEngine()) {
+	if (this->IsPrimaryVehicle()) {
 		CheckVehicleBreakdown(this);
 
 		CheckIfTrainNeedsService(this);

@@ -15,6 +15,7 @@
 #include "../../vehicle_type.h"
 #include "../../ship.h"
 #include "../../roadveh.h"
+#include "../../vehicle_func.h"
 #include "../pathfinder_type.h"
 
 /**

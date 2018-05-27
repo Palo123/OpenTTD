@@ -43,6 +43,8 @@ enum OrderType : byte {
 	OT_GOTO_WAYPOINT = 6,
 	OT_CONDITIONAL   = 7,
 	OT_IMPLICIT      = 8,
+	OT_GOTO_COUPLE   = 9,
+	OT_WAIT_COUPLE   = 10,
 	OT_END
 };
 
@@ -64,6 +66,11 @@ enum OrderLoadFlags {
 	OLFB_FULL_LOAD       = 1 << 1, ///< Full load all cargoes of the consist.
 	OLF_FULL_LOAD_ANY    = 3,      ///< Full load a single cargo of the consist.
 	OLFB_NO_LOAD         = 4,      ///< Do not load anything.
+};
+
+enum OrderDecoupleFlags {
+	ODF_NOTHING = 0,
+	ODF_DECOUPLE = 1,
 };
 
 /**
@@ -150,6 +157,7 @@ enum ModifyOrderFlags {
 	MOF_COND_COMPARATOR, ///< A comparator changes.
 	MOF_COND_VALUE,      ///< The value to set the condition to.
 	MOF_COND_DESTINATION,///< Change the destination of a conditional order.
+	MOF_DECOUPLE        ,///< Change decouple option.
 	MOF_END
 };
 template <> struct EnumPropsT<ModifyOrderFlags> : MakeEnumPropsT<ModifyOrderFlags, byte, MOF_NON_STOP, MOF_END, MOF_END, 4> {};

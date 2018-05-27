@@ -3978,6 +3978,9 @@ STR_ORDER_CONDITIONAL_VALUE_CAPT                                :{WHITE}Enter va
 STR_ORDERS_SKIP_BUTTON                                          :{BLACK}Skip
 STR_ORDERS_SKIP_TOOLTIP                                         :{BLACK}Skip the current order, and start the next. Ctrl+Click skips to the selected order
 
+STR_ORDERS_DECOUPLE_BUTTON                                      :{BLACK}Decouple
+STR_ORDERS_DECOUPLE_TOOLTIP                                     :{BLACK}Decouple train at the station
+
 STR_ORDERS_DELETE_BUTTON                                        :{BLACK}Delete
 STR_ORDERS_DELETE_TOOLTIP                                       :{BLACK}Delete the highlighted order
 STR_ORDERS_DELETE_ALL_TOOLTIP                                   :{BLACK}Delete all orders
@@ -3989,6 +3992,8 @@ STR_ORDER_GO_TO_NEAREST_DEPOT                                   :Go to nearest d
 STR_ORDER_GO_TO_NEAREST_HANGAR                                  :Go to nearest hangar
 STR_ORDER_CONDITIONAL                                           :Conditional order jump
 STR_ORDER_SHARE                                                 :Share orders
+STR_ORDER_GO_TO_COUPLE                                          :Go to couple train
+STR_ORDER_WAIT_FOR_COUPLE                                       :Wait for couple
 STR_ORDERS_GO_TO_TOOLTIP                                        :{BLACK}Insert a new order before the highlighted order, or add to end of list. Ctrl makes station orders 'full load any cargo', waypoint orders 'non-stop' and depot orders 'service'. 'Share orders' or Ctrl lets this vehicle share orders with the selected vehicle. Clicking a vehicle copies the orders from that vehicle. A depot order disables automatic servicing of the vehicle
 
 STR_ORDERS_VEH_WITH_SHARED_ORDERS_LIST_TOOLTIP                  :{BLACK}Show all vehicles that share this schedule

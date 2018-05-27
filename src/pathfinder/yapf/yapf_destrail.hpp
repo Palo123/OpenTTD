@@ -203,4 +203,83 @@ public:
 	}
 };
 
+/**
+ * Helper struct for finding the best matching vehicle on a specific track.
+ */
+struct FindTrainOnTrackInfo {
+	Trackdir res; ///< Information about the track.
+	Train *best;     ///< The currently "best" vehicle we have found.
+
+	/** Init the best location to NULL always! */
+	FindTrainOnTrackInfo() : best(NULL) {}
+};
+
+/** Callback for Has/FindVehicleOnPos to find a train on a specific track. */
+static Vehicle *FindTrainOnTrackEnum(Vehicle *v, void *data)
+{
+	FindTrainOnTrackInfo *info = (FindTrainOnTrackInfo *)data;
+
+	if (v->type != VEH_TRAIN || (v->vehstatus & VS_CRASHED)) return NULL;
+
+	Train *t = Train::From(v);
+	if (t->track == TRACK_BIT_WORMHOLE || HasBit((TrackBits)t->track, TrackdirToTrack(info->res))) {
+		t = t->First();
+
+		/* ALWAYS return the lowest ID (anti-desync!) */
+		if (info->best == NULL || t->index < info->best->index) info->best = t;
+		return t;
+	}
+
+	return NULL;
+}
+
+template <class Types>
+class CYapfDestinationTrainRailT : public CYapfDestinationRailBase {
+public:
+	typedef typename Types::Tpf Tpf;              ///< the pathfinder class (derived from THIS class)
+	typedef typename Types::NodeList::Titem Node; ///< this will be our node type
+	typedef typename Node::Key Key;               ///< key to hash tables
+
+	/** to access inherited path finder */
+	Tpf& Yapf()
+	{
+		return *static_cast<Tpf *>(this);
+	}
+
+	/** Called by YAPF to detect if node ends in the desired destination */
+	inline bool PfDetectDestination(Node &n)
+	{
+		return PfDetectDestination(n.GetLastTile(), n.GetLastTrackdir());
+	}
+
+	/** Called by YAPF to detect if node ends in the desired destination */
+	inline bool PfDetectDestination(TileIndex tile, Trackdir td)
+	{
+		TrackdirBits tdb = TrackdirToTrackdirBits(td);
+		if (!HasReservedTracks(tile, TrackdirBitsToTrackBits(tdb))) return false;
+		FindTrainOnTrackInfo ftoti;
+		ftoti.res = td;
+		FindVehicleOnPos(tile, &ftoti, FindTrainOnTrackEnum);
+		if (ftoti.best != NULL) {
+			Train *t = ftoti.best;
+			if (t->current_order.IsType(OT_WAIT_COUPLE)) {
+				return true;
+			}
+		}
+		//FindVehicleOnPos
+		return false;// IsSafeWaitingPosition(Yapf().GetVehicle(), tile, td, true, !TrackFollower::Allow90degTurns()) &&
+				//IsWaitingPositionFree(Yapf().GetVehicle(), tile, td, !TrackFollower::Allow90degTurns());
+	}
+
+	/**
+	 * Called by YAPF to calculate cost estimate. Calculates distance to the destination
+	 *  adds it to the actual cost from origin and stores the sum to the Node::m_estimate.
+	 */
+	inline bool PfCalcEstimate(Node &n)
+	{
+		n.m_estimate = n.m_cost;
+		return true;
+	}
+};
+
 #endif /* YAPF_DESTRAIL_HPP */

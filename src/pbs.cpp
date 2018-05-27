@@ -69,6 +69,46 @@ void SetRailStationPlatformReservation(TileIndex start, DiagDirection dir, bool 
 	} while (IsCompatibleTrainStationTile(tile, start));
 }
 
+struct FindOtherTrainOnTrackInfo {
+	bool res; ///< Information about the track.
+	const Train *other;     ///< The currently "best" vehicle we have found.
+};
+
+static Vehicle *FindOtherTrainOnTrackEnum(Vehicle *v, void *data)
+{
+	FindOtherTrainOnTrackInfo *foti = (FindOtherTrainOnTrackInfo *) data;
+	const Train *u = foti->other;
+
+	if (v->type != VEH_TRAIN) return NULL;
+
+	Train *t = Train::From(v);
+	if (t->First()->index != u->First()->index) {
+		foti->res = true;
+		return t;
+	}
+
+	return NULL;
+}
+
+bool IsRailStationPlatformFree(const Train *v, TileIndex start, DiagDirection dir)
+{
+	TileIndex     tile = start;
+	TileIndexDiff diff = TileOffsByDiagDir(dir);
+
+	assert(IsRailStationTile(start));
+	assert(GetRailStationAxis(start) == DiagDirToAxis(dir));
+	FindOtherTrainOnTrackInfo foti;
+	foti.other = v;
+	foti.res = false;
+	do {
+		FindVehicleOnPos(tile, &foti, FindOtherTrainOnTrackEnum);
+		if (foti.res) return false;
+		
+		tile = TILE_ADD(tile, diff);
+	} while (IsCompatibleTrainStationTile(tile, start));
+	return true;
+}
+
 /**
  * Try to reserve a specific track on a tile
  * @param tile the tile

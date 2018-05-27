@@ -114,6 +114,7 @@ enum GroundVehicleSubtypeFlags {
 	GVSF_ENGINE           = 3, ///< Engine that can be front engine, but might be placed behind another engine (not used for road vehicles).
 	GVSF_FREE_WAGON       = 4, ///< First in a wagon chain (in depot) (not used for road vehicles).
 	GVSF_MULTIHEADED      = 5, ///< Engine is multiheaded (not used for road vehicles).
+	GVSF_FRONT_WAGON      = 6, ///< First in a wagon chain (outside depot)
 };
 
 /** Cached often queried values common to all vehicles. */

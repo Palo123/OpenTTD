@@ -38,6 +38,7 @@ private:
 	uint8 type;           ///< The type of order + non-stop flags
 	uint8 flags;          ///< Load/unload types, depot order/action types.
 	DestinationID dest;   ///< The destination of the order.
+	uint8 decouple_flags; ///< Couple/decouple types.
 
 	CargoID refit_cargo;  ///< Refit CargoID
 
@@ -73,6 +74,8 @@ public:
 	void MakeGoToWaypoint(StationID destination);
 	void MakeLoading(bool ordered);
 	void MakeLeaveStation();
+	void MakeGoToCouple();
+	void MakeWaitCouple();
 	void MakeDummy();
 	void MakeConditional(VehicleOrderID order);
 	void MakeImplicit(StationID destination);
@@ -143,6 +146,8 @@ public:
 	inline VehicleOrderID GetConditionSkipToOrder() const { return this->flags; }
 	/** Get the value to base the skip on. */
 	inline uint16 GetConditionValue() const { return GB(this->dest, 0, 11); }
+	/** Are we going to decouple? */
+	inline uint8 GetDecouple() const { return GB(this->decouple_flags, 0, 1); }
 
 	/** Set how the consist must be loaded. */
 	inline void SetLoadType(OrderLoadFlags load_type) { SB(this->flags, 4, 3, load_type); }
@@ -164,6 +169,8 @@ public:
 	inline void SetConditionSkipToOrder(VehicleOrderID order_id) { this->flags = order_id; }
 	/** Set the value to base the skip on. */
 	inline void SetConditionValue(uint16 value) { SB(this->dest, 0, 11, value); }
+	/** Set wheter we must decople or not */
+	inline void SetDecouple(uint8 value) { SB(this->decouple_flags, 0, 1, value); }
 
 	/* As conditional orders write their "skip to" order all over the flags, we cannot check the
 	 * flags to find out if timetabling is enabled. However, as conditional orders are never

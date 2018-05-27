@@ -362,6 +362,101 @@ public:
 };
 
 template <class Types>
+class CYapfFollowCoupleRailT : public CYapfReserveTrack<Types>
+{
+public:
+	typedef typename Types::Tpf Tpf;                     ///< the pathfinder class (derived from THIS class)
+	typedef typename Types::TrackFollower TrackFollower;
+	typedef typename Types::NodeList::Titem Node;        ///< this will be our node type
+	typedef typename Node::Key Key;                      ///< key to hash tables
+
+protected:
+	/** to access inherited path finder */
+	inline Tpf& Yapf()
+	{
+		return *static_cast<Tpf *>(this);
+	}
+
+public:
+	/**
+	 * Called by YAPF to move from the given node to the next tile. For each
+	 *  reachable trackdir on the new tile creates new node, initializes it
+	 *  and adds it to the open list by calling Yapf().AddNewNode(n)
+	 */
+	inline void PfFollowNode(Node &old_node)
+	{
+		TrackFollower F(Yapf().GetVehicle(), Yapf().GetCompatibleRailTypes());
+		
+		Track track = TrackdirToTrack(old_node.GetLastTrackdir());
+		TileIndex last_tile = old_node.GetLastTile();
+		bool has_signal = HasSignalOnTrack(last_tile, track);
+		bool has_pbs_reverse = false;
+		if (has_signal) {
+			if (HasPbsSignalOnTrackdir(last_tile, ReverseTrackdir(old_node.GetLastTrackdir()))) {
+				if (!IsOnewaySignal(last_tile, track)) {
+					has_pbs_reverse = true;
+				}
+			}
+		}
+		if (F.Follow(old_node.GetLastTile(), old_node.GetLastTrackdir()) && (!has_signal || has_pbs_reverse)) {
+			Yapf().AddMultipleNodes(&old_node, F);
+		}
+	}
+
+	/** Return debug report character to identify the transportation type */
+	inline char TransportTypeChar() const
+	{
+		return 't';
+	}
+
+	static bool stFindNearestCoupleTrain(const Train *v, TileIndex t1, Trackdir td, bool override_railtype)
+	{
+		/* Create pathfinder instance */
+		Tpf pf1;
+		bool result1;
+		if (_debug_desync_level < 2) {
+			result1 = pf1.FindNearestCoupleTrain(v, t1, td, override_railtype, false);
+		} else {
+			bool result2 = pf1.FindNearestCoupleTrain(v, t1, td, override_railtype, true);
+			Tpf pf2;
+			pf2.DisableCache(true);
+			result1 = pf2.FindNearestCoupleTrain(v, t1, td, override_railtype, false);
+			if (result1 != result2) {
+				DEBUG(desync, 2, "CACHE ERROR: FindSafeTile() = [%s, %s]", result2 ? "T" : "F", result1 ? "T" : "F");
+				DumpState(pf1, pf2);
+			}
+		}
+
+		return result1;
+	}
+
+	bool FindNearestCoupleTrain(const Train *v, TileIndex t1, Trackdir td, bool override_railtype, bool dont_reserve)
+	{
+		/* Set origin and destination. */
+		Yapf().SetOrigin(t1, td);
+		Yapf().SetDestination(v, override_railtype);
+
+		bool bFound = Yapf().FindPath(v);
+		if (!bFound) return false;
+
+		/* Found a destination, set as reservation target. */
+		Node *pNode = Yapf().GetBestNode();
+		this->SetReservationTarget(pNode, pNode->GetLastTile(), pNode->GetLastTrackdir());
+
+		/* Walk through the path back to the origin. */
+		Node *pPrev = NULL;
+		while (pNode->m_parent != NULL) {
+			pPrev = pNode;
+			pNode = pNode->m_parent;
+
+			this->FindSafePositionOnNode(pPrev);
+		}
+
+		return dont_reserve || this->TryReservePath(NULL, pNode->GetLastTile());
+	}
+};
+
+template <class Types>
 class CYapfFollowRailT : public CYapfReserveTrack<Types>
 {
 public:
@@ -528,6 +623,9 @@ struct CYapfAnyDepotRail2 : CYapfT<CYapfRail_TypesT<CYapfAnyDepotRail2, CFollowT
 
 struct CYapfAnySafeTileRail1 : CYapfT<CYapfRail_TypesT<CYapfAnySafeTileRail1, CFollowTrackFreeRail    , CRailNodeListTrackDir, CYapfDestinationAnySafeTileRailT , CYapfFollowAnySafeTileRailT> > {};
 struct CYapfAnySafeTileRail2 : CYapfT<CYapfRail_TypesT<CYapfAnySafeTileRail2, CFollowTrackFreeRailNo90, CRailNodeListTrackDir, CYapfDestinationAnySafeTileRailT , CYapfFollowAnySafeTileRailT> > {};
+
+struct CYapfCouple1         : CYapfT<CYapfRail_TypesT<CYapfCouple1    , CFollowTrackRail    , CRailNodeListTrackDir, CYapfDestinationTrainRailT, CYapfFollowCoupleRailT> > {};
+struct CYapfCouple2         : CYapfT<CYapfRail_TypesT<CYapfCouple2    , CFollowTrackRailNo90, CRailNodeListTrackDir, CYapfDestinationTrainRailT, CYapfFollowCoupleRailT> > {};
 
 
 Track YapfTrainChooseTrack(const Train *v, TileIndex tile, DiagDirection enterdir, TrackBits tracks, bool &path_found, bool reserve_track, PBSTileInfo *target)

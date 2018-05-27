@@ -252,6 +252,16 @@ struct GroundVehicle : public SpecializedVehicle<T, Type> {
 	 * Remove the front engine state.
 	 */
 	inline void ClearFrontEngine() { ClrBit(this->subtype, GVSF_FRONT); }
+	
+	/**
+	 * Set front wagon state.
+	 */
+	inline void SetFrontWagon() { SetBit(this->subtype, GVSF_FRONT_WAGON); }
+
+	/**
+	 * Remove the front wagon state.
+	 */
+	inline void ClearFrontWagon() { ClrBit(this->subtype, GVSF_FRONT_WAGON); }	
 
 	/**
 	 * Set a vehicle to be an articulated part.
@@ -308,6 +318,12 @@ struct GroundVehicle : public SpecializedVehicle<T, Type> {
 	 * @return Returns true if the vehicle is a free wagon.
 	 */
 	inline bool IsFreeWagon() const { return HasBit(this->subtype, GVSF_FREE_WAGON); }
+	
+	/**
+	 * Check if the vehicle is a first wagon (got no engine in front of it).
+	 * @return Returns true if the vehicle is a first wagon.
+	 */
+	inline bool IsFrontWagon() const { return HasBit(this->subtype, GVSF_FRONT_WAGON); }
 
 	/**
 	 * Check if a vehicle is an engine (can be first in a consist).
