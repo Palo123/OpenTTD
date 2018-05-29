@@ -3797,6 +3797,70 @@ static bool TrainCheckIfLineEnds(Train *v, bool reverse)
 	return true;
 }
 
+static void Couple(Train *v, Train *u, bool train_u_reversed)
+{
+	/* Delete orders, group stuff and the unit number as we're not the
+	 * front of any vehicle anymore. */
+	Train *u_head = u;
+	ArrangeTrains(&v, v, &u_head, u, true);
+	
+	DeleteVehicleOrders(u);
+	RemoveVehicleFromGroup(u);
+	u->unitnumber = 0;
+	u->ClearFrontWagon();
+	v->direction = ReverseDir(v->direction);
+}
+
+static Train *GetCouplePosition(Train *v, bool &reverse)
+{
+
+	
+	// TO DO real Find train
+	Vehicle *other_vehicle;
+	FollowTrainReservation(v, &other_vehicle);
+	
+	if (other_vehicle == NULL) {
+		return NULL;
+	}
+	Train *u = Train::From(other_vehicle);
+	
+	int x_diff = abs(v->x_pos - u->x_pos);
+	int y_diff = abs(v->y_pos - u->y_pos);
+	
+	int diff = max(x_diff, y_diff);
+	
+	if (diff == ((v->gcache.cached_veh_length + 1) / 2 + (u->gcache.cached_veh_length + 1) / 2)) {
+		reverse = false;
+		return u;
+	}
+	
+	Train *z;
+	for (z = u;z->Next() != NULL; z = z->Next());
+	
+	x_diff = abs(v->x_pos - z->x_pos);
+	y_diff = abs(v->y_pos - z->y_pos);
+	
+	diff = max(x_diff, y_diff);
+	
+	if (diff == ((v->gcache.cached_veh_length + 1) / 2 + (z->gcache.cached_veh_length) / 2)) {
+		reverse = true;
+		return u;
+	}
+	
+	//Compute couple positions
+	return NULL;
+}
+
+static bool TrainCoupleHandler(Train *v)
+{
+	int32 x_pos;
+	int32 y_pos;
+	bool reverse;
+	Train *u = GetCouplePosition(v, reverse);
+	if (u == NULL) return false;
+	Couple(v, u, reverse);
+	return true;
+}
 
 static bool TrainLocoHandler(Train *v, bool mode)
 {
@@ -3908,6 +3972,13 @@ static bool TrainLocoHandler(Train *v, bool mode)
 		for (;;) {
 			j -= adv_spd;
 			TrainController(v, nullptr);
+			/* Couple now? */
+			if (v->current_order.IsType(OT_GOTO_COUPLE)) {
+				if (TrainCoupleHandler(v)) {
+					v->cur_speed = 0;
+					break;
+				}
+			}
 			/* Don't continue to move if the train crashed. */
 			if (CheckTrainCollision(v)) break;
 			/* Determine distance to next map position */
