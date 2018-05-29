@@ -2582,6 +2582,8 @@ static Track ChooseTrainTrack(Train *v, TileIndex tile, DiagDirection enterdir, 
 	assert((tracks & ~TRACK_BIT_MASK) == 0);
 
 	if (got_reservation != nullptr) *got_reservation = false;
+	
+	TrackBits origin_tracks = tracks;
 
 	/* Don't use tracks here as the setting to forbid 90 deg turns might have been switched between reservation and now. */
 	TrackBits res_tracks = (TrackBits)(GetReservedTrackbits(tile) & DiagdirReachesTracks(enterdir));
@@ -2654,7 +2656,7 @@ static Track ChooseTrainTrack(Train *v, TileIndex tile, DiagDirection enterdir, 
 			if (mark_stuck) MarkTrainAsStuck(v);
 			FreeTrainTrackReservation(v);
 			if (changed_signal) SetSignalStateByTrackdir(tile, TrackEnterdirToTrackdir(best_track, enterdir), SIGNAL_STATE_RED);
-			return FindFirstTrack(tracks);
+			return FindFirstTrack(origin_tracks);
 		}
 		if (got_reservation != NULL) *got_reservation = true;
 		/*if (!res_dest.okay) {
