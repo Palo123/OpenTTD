@@ -427,19 +427,19 @@ public:
 		return 't';
 	}
 
-	static bool stFindNearestCoupleTrain(const Train *v, TileIndex t1, bool override_railtype, bool dont_reserve)
+	static bool stFindNearestCoupleTrain(const Train *v, bool override_railtype, bool dont_reserve)
 	{
 		/* Create pathfinder instance */
 		Tpf pf1;
 		bool result1;
 		if (_debug_desync_level < 2) {
 			pf1.DisableCache(true);
-			result1 = pf1.FindNearestCoupleTrain(v, t1, override_railtype, dont_reserve);
+			result1 = pf1.FindNearestCoupleTrain(v, override_railtype, dont_reserve);
 		} else {
-			bool result2 = pf1.FindNearestCoupleTrain(v, t1, override_railtype, true);
+			bool result2 = pf1.FindNearestCoupleTrain(v, override_railtype, true);
 			Tpf pf2;
 			pf2.DisableCache(true);
-			result1 = pf2.FindNearestCoupleTrain(v, t1, override_railtype, dont_reserve);
+			result1 = pf2.FindNearestCoupleTrain(v, override_railtype, dont_reserve);
 			if (result1 != result2) {
 				DEBUG(desync, 2, "CACHE ERROR: FindSafeTile() = [%s, %s]", result2 ? "T" : "F", result1 ? "T" : "F");
 				DumpState(pf1, pf2);
@@ -449,7 +449,7 @@ public:
 		return result1;
 	}
 
-	bool FindNearestCoupleTrain(const Train *v, TileIndex t1, bool override_railtype, bool dont_reserve)
+	bool FindNearestCoupleTrain(const Train *v, bool override_railtype, bool dont_reserve)
 	{
 		PBSTileInfo origin = FollowTrainReservation(v);
 		/* Set origin and destination. */
@@ -457,7 +457,7 @@ public:
 		Yapf().SetDestination(v, override_railtype);
 
 		bool path_found = Yapf().FindPath(v);
-		//if (!bFound) return false;
+		if (!path_found) return false;
 
 		/* Found a destination, set as reservation target. */
 		Node *pNode = Yapf().GetBestNode();
@@ -663,10 +663,10 @@ Track YapfTrainChooseTrack(const Train *v, TileIndex tile, DiagDirection enterdi
 	return (td_ret != INVALID_TRACKDIR) ? TrackdirToTrack(td_ret) : FindFirstTrack(tracks);
 }
 
-Track YapfTrainCoupleTrack(const Train *v, TileIndex t1, bool override_railtype, bool dont_reserve)
+bool YapfTrainCoupleTrack(const Train *v, bool override_railtype, bool dont_reserve)
 {
 	/* default is YAPF type 2 */
-	typedef bool (*PfnCoupleRailTrack)(const Train*, TileIndex, bool, bool);
+	typedef bool (*PfnCoupleRailTrack)(const Train*, bool, bool);
 	PfnCoupleRailTrack pfnCoupleRailTrack = &CYapfCouple1::stFindNearestCoupleTrain;
 
 	/* check if non-default YAPF type needed */
@@ -674,9 +674,9 @@ Track YapfTrainCoupleTrack(const Train *v, TileIndex t1, bool override_railtype,
 		pfnCoupleRailTrack = &CYapfCouple2::stFindNearestCoupleTrain; // Trackdir, forbid 90-deg
 	}
 
-	bool td_ret = pfnCoupleRailTrack(v, t1, override_railtype, dont_reserve);
+	bool b = pfnCoupleRailTrack(v, override_railtype, dont_reserve);
 	//return (td_ret != INVALID_TRACKDIR) ? TrackdirToTrack(td_ret) : FindFirstTrack(tracks);
-	return INVALID_TRACK;
+	return b;
 }
 
 bool YapfTrainCheckReverse(const Train *v)

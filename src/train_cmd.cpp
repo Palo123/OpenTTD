@@ -2348,11 +2348,11 @@ static Track DoTrainPathfind(const Train *v, TileIndex tile, DiagDirection enter
 	}
 }
 
-static Track DoTrainCouplePathfind(const Train *v, TileIndex tile, bool do_track_reservation)
+static bool DoTrainCouplePathfind(const Train *v, bool do_track_reservation)
 {
 	switch (_settings_game.pf.pathfinder_for_trains) {
-		case VPF_NPF: return INVALID_TRACK;
-		case VPF_YAPF: return YapfTrainCoupleTrack(v, tile, true, !do_track_reservation);
+		case VPF_NPF: return false;
+		case VPF_YAPF: return YapfTrainCoupleTrack(v, true, !do_track_reservation);
 		default: NOT_REACHED();
 	}
 }
@@ -2620,10 +2620,16 @@ static Track ChooseTrainTrack(Train *v, TileIndex tile, DiagDirection enterdir, 
 	
 	if (v->current_order.IsType(OT_GOTO_COUPLE)) {
 		bool path_found = true;
-		TileIndex new_tile = res_dest.tile != INVALID_TILE ? res_dest.tile : tile;
 		
-		Track next_track = DoTrainCouplePathfind(v, tile, do_track_reservation);
-		//if (got_reservation != NULL) *got_reservation = true;
+		path_found = DoTrainCouplePathfind(v, do_track_reservation);
+		
+		if (!path_found) {
+			if (mark_stuck) MarkTrainAsStuck(v);
+			FreeTrainTrackReservation(v);
+			if (changed_signal) SetSignalStateByTrackdir(tile, TrackEnterdirToTrackdir(best_track, enterdir), SIGNAL_STATE_RED);
+			return FindFirstTrack(tracks);
+		}
+		if (got_reservation != NULL) *got_reservation = true;
 		/*if (!res_dest.okay) {
 			if (mark_stuck) MarkTrainAsStuck(v);
 			FreeTrainTrackReservation(v);
@@ -3804,6 +3810,14 @@ static void Couple(Train *v, Train *u, bool train_u_reversed)
 	Train *u_head = u;
 	ArrangeTrains(&v, v, &u_head, u, true);
 	
+	DeleteWindowById(WC_VEHICLE_VIEW, u->index);
+	DeleteWindowById(WC_VEHICLE_ORDERS, u->index);
+	DeleteWindowById(WC_VEHICLE_REFIT, u->index);
+	DeleteWindowById(WC_VEHICLE_DETAILS, u->index);
+	DeleteWindowById(WC_VEHICLE_TIMETABLE, u->index);
+	DeleteNewGRFInspectWindow(GSF_TRAINS, u->index);
+	SetWindowDirty(WC_COMPANY, _current_company);
+	
 	DeleteVehicleOrders(u);
 	RemoveVehicleFromGroup(u);
 	u->unitnumber = 0;
@@ -3816,10 +3830,13 @@ static Train *GetCouplePosition(Train *v, bool &reverse)
 
 	
 	// TO DO real Find train
-	Vehicle *other_vehicle;
+	Vehicle *other_vehicle = NULL;
 	FollowTrainReservation(v, &other_vehicle);
 	
 	if (other_vehicle == NULL) {
+		return NULL;
+	}
+	if (other_vehicle->First()->index == v->index) {
 		return NULL;
 	}
 	Train *u = Train::From(other_vehicle);
@@ -3853,8 +3870,6 @@ static Train *GetCouplePosition(Train *v, bool &reverse)
 
 static bool TrainCoupleHandler(Train *v)
 {
-	int32 x_pos;
-	int32 y_pos;
 	bool reverse;
 	Train *u = GetCouplePosition(v, reverse);
 	if (u == NULL) return false;
