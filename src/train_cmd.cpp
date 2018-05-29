@@ -1608,6 +1608,33 @@ void ReverseTrainSwapVeh(Train *v, int l, int r)
 	}
 }
 
+static void ReverseTrainChainDir(Train *v) {
+	for (Train *a = v; a != NULL; a = a->Next()) {
+		a->direction = ReverseDir(a->direction);
+	}
+}
+
+static Train *ReverseTrainChain(Train *v)
+{
+	Train *new_first = v->Last();
+	Train *tmp = NULL;
+	Train *tmp2;
+	bool first = true;
+	for (Train *a = v; a != NULL; a = a->Next()) {
+		
+		if (first) {
+			first = false;
+			tmp2 = tmp;
+			tmp = a;
+			continue;
+		}
+		tmp->SetNext(tmp2);
+		tmp2 = tmp;
+		tmp = a;
+	}
+	tmp->SetNext(tmp2);
+	return new_first;
+}
 
 /**
  * Check if the vehicle is a train
@@ -3807,9 +3834,7 @@ static void Couple(Train *v, Train *u, bool train_u_reversed)
 {
 	/* Delete orders, group stuff and the unit number as we're not the
 	 * front of any vehicle anymore. */
-	Train *u_head = u;
-	ArrangeTrains(&v, v, &u_head, u, true);
-	
+	 
 	DeleteWindowById(WC_VEHICLE_VIEW, u->index);
 	DeleteWindowById(WC_VEHICLE_ORDERS, u->index);
 	DeleteWindowById(WC_VEHICLE_REFIT, u->index);
@@ -3821,7 +3846,19 @@ static void Couple(Train *v, Train *u, bool train_u_reversed)
 	DeleteVehicleOrders(u);
 	RemoveVehicleFromGroup(u);
 	u->unitnumber = 0;
+	
+	if (train_u_reversed) {
+		u->ClearFrontWagon();
+		u = ReverseTrainChain(u);
+		ReverseTrainChainDir(u);
+		u->SetFrontWagon();
+	}
+	 
+	Train *u_head = u;
+	ArrangeTrains(&v, v, &u_head, u, true);
+	
 	u->ClearFrontWagon();
+	
 	v->direction = ReverseDir(v->direction);
 	v->IncrementImplicitOrderIndex();
 }
