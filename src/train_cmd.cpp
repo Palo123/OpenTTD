@@ -3823,6 +3823,7 @@ static void Couple(Train *v, Train *u, bool train_u_reversed)
 	u->unitnumber = 0;
 	u->ClearFrontWagon();
 	v->direction = ReverseDir(v->direction);
+	v->IncrementImplicitOrderIndex();
 }
 
 static Train *GetCouplePosition(Train *v, bool &reverse)
