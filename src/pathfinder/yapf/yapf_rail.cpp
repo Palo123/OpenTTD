@@ -16,6 +16,8 @@
 #include "yapf_destrail.hpp"
 #include "../../viewport_func.h"
 #include "../../newgrf_station.h"
+#include "../../rail_map.h"
+#include "../../track_func.h"
 
 #include "../../safeguards.h"
 
@@ -68,6 +70,20 @@ private:
 		}
 		return true;
 	}
+	
+	bool FindSafeCouplePositionProc(TileIndex tile, Trackdir td)
+	{
+		TrackdirBits tdb = TrackdirToTrackdirBits(td);
+		TrackBits tracks = TrackdirBitsToTrackBits(tdb);
+		if (HasReservedTracks(tile, tracks)) {
+			Train *t = GetTrainForReservation(tile, TrackdirToTrack(td));
+			if (t->current_order.IsType(OT_WAIT_COUPLE)) {
+				return true;
+			}
+			return false;
+		}
+		return true;
+	}
 
 	/** Reserve a railway platform. Tile contains the failed tile on abort. */
 	bool ReserveRailStationPlatform(TileIndex &tile, DiagDirection dir)
@@ -95,6 +111,7 @@ private:
 				/* Platform could not be reserved, undo. */
 				m_res_fail_tile = tile;
 				m_res_fail_td = td;
+				return false;
 			}
 		} else {
 			if (!TryReserveRailTrack(tile, TrackdirToTrack(td))) {
@@ -145,9 +162,22 @@ public:
 			m_res_node = node;
 		}
 	}
+	
+	inline bool CheckSafePositionOnNode(Node *node)
+	{
+		assert(node->m_parent != NULL);
+		
+		/* We will never pass more than two signals, no need to check for a safe tile. */
+		if (node->m_parent->m_num_signals_passed >= 2) return false;
+
+		if (!node->IterateTiles(Yapf().GetVehicle(), Yapf(), *this, &CYapfReserveTrack<Types>::FindSafeCouplePositionProc)) {
+			return false;
+		}
+		return true;
+	}
 
 	/** Try to reserve the path till the reservation target. */
-	bool TryReservePath(PBSTileInfo *target, TileIndex origin)
+	bool TryReservePath(PBSTileInfo *target, TileIndex origin, bool unsafe_pos = false)
 	{
 		m_res_fail_tile = INVALID_TILE;
 		m_origin_tile = origin;
@@ -159,11 +189,11 @@ public:
 		}
 
 		/* Don't bother if the target is reserved. */
-		if (!IsWaitingPositionFree(Yapf().GetVehicle(), m_res_dest, m_res_dest_td)) return false;
+		if (!unsafe_pos && !IsWaitingPositionFree(Yapf().GetVehicle(), m_res_dest, m_res_dest_td)) return false;
 
 		for (Node *node = m_res_node; node->m_parent != nullptr; node = node->m_parent) {
 			node->IterateTiles(Yapf().GetVehicle(), Yapf(), *this, &CYapfReserveTrack<Types>::ReserveSingleTrack);
-			if (m_res_fail_tile != INVALID_TILE) {
+			if (!unsafe_pos && m_res_fail_tile != INVALID_TILE) {
 				/* Reservation failed, undo. */
 				Node *fail_node = m_res_node;
 				TileIndex stop_tile = m_res_fail_tile;
@@ -386,19 +416,7 @@ public:
 	inline void PfFollowNode(Node &old_node)
 	{
 		TrackFollower F(Yapf().GetVehicle(), Yapf().GetCompatibleRailTypes());
-		
-		Track track = TrackdirToTrack(old_node.GetLastTrackdir());
-		TileIndex last_tile = old_node.GetLastTile();
-		bool has_signal = HasSignalOnTrack(last_tile, track);
-		bool has_pbs_reverse = false;
-		if (has_signal) {
-			if (HasPbsSignalOnTrackdir(last_tile, ReverseTrackdir(old_node.GetLastTrackdir()))) {
-				if (!IsOnewaySignal(last_tile, track)) {
-					has_pbs_reverse = true;
-				}
-			}
-		}
-		if (F.Follow(old_node.GetLastTile(), old_node.GetLastTrackdir()) && (!has_signal || has_pbs_reverse)) {
+		if (F.Follow(old_node.GetLastTile(), old_node.GetLastTrackdir()) && (old_node.m_num_signals_passed == 0)) {
 			Yapf().AddMultipleNodes(&old_node, F);
 		}
 	}
@@ -409,18 +427,19 @@ public:
 		return 't';
 	}
 
-	static bool stFindNearestCoupleTrain(const Train *v, TileIndex t1, Trackdir td, bool override_railtype)
+	static bool stFindNearestCoupleTrain(const Train *v, TileIndex t1, bool override_railtype, bool dont_reserve)
 	{
 		/* Create pathfinder instance */
 		Tpf pf1;
 		bool result1;
 		if (_debug_desync_level < 2) {
-			result1 = pf1.FindNearestCoupleTrain(v, t1, td, override_railtype, false);
+			pf1.DisableCache(true);
+			result1 = pf1.FindNearestCoupleTrain(v, t1, override_railtype, dont_reserve);
 		} else {
-			bool result2 = pf1.FindNearestCoupleTrain(v, t1, td, override_railtype, true);
+			bool result2 = pf1.FindNearestCoupleTrain(v, t1, override_railtype, true);
 			Tpf pf2;
 			pf2.DisableCache(true);
-			result1 = pf2.FindNearestCoupleTrain(v, t1, td, override_railtype, false);
+			result1 = pf2.FindNearestCoupleTrain(v, t1, override_railtype, dont_reserve);
 			if (result1 != result2) {
 				DEBUG(desync, 2, "CACHE ERROR: FindSafeTile() = [%s, %s]", result2 ? "T" : "F", result1 ? "T" : "F");
 				DumpState(pf1, pf2);
@@ -430,14 +449,15 @@ public:
 		return result1;
 	}
 
-	bool FindNearestCoupleTrain(const Train *v, TileIndex t1, Trackdir td, bool override_railtype, bool dont_reserve)
+	bool FindNearestCoupleTrain(const Train *v, TileIndex t1, bool override_railtype, bool dont_reserve)
 	{
+		PBSTileInfo origin = FollowTrainReservation(v);
 		/* Set origin and destination. */
-		Yapf().SetOrigin(t1, td);
+		Yapf().SetOrigin(origin.tile, origin.trackdir);
 		Yapf().SetDestination(v, override_railtype);
 
-		bool bFound = Yapf().FindPath(v);
-		if (!bFound) return false;
+		bool path_found = Yapf().FindPath(v);
+		//if (!bFound) return false;
 
 		/* Found a destination, set as reservation target. */
 		Node *pNode = Yapf().GetBestNode();
@@ -449,10 +469,10 @@ public:
 			pPrev = pNode;
 			pNode = pNode->m_parent;
 
-			this->FindSafePositionOnNode(pPrev);
+			if (!this->CheckSafePositionOnNode(pPrev)) return false;
 		}
 
-		return dont_reserve || this->TryReservePath(NULL, pNode->GetLastTile());
+		return dont_reserve || this->TryReservePath(NULL, pNode->GetLastTile(), true);
 	}
 };
 
@@ -641,6 +661,22 @@ Track YapfTrainChooseTrack(const Train *v, TileIndex tile, DiagDirection enterdi
 
 	Trackdir td_ret = pfnChooseRailTrack(v, tile, enterdir, tracks, path_found, reserve_track, target);
 	return (td_ret != INVALID_TRACKDIR) ? TrackdirToTrack(td_ret) : FindFirstTrack(tracks);
+}
+
+Track YapfTrainCoupleTrack(const Train *v, TileIndex t1, bool override_railtype, bool dont_reserve)
+{
+	/* default is YAPF type 2 */
+	typedef bool (*PfnCoupleRailTrack)(const Train*, TileIndex, bool, bool);
+	PfnCoupleRailTrack pfnCoupleRailTrack = &CYapfCouple1::stFindNearestCoupleTrain;
+
+	/* check if non-default YAPF type needed */
+	if (_settings_game.pf.forbid_90_deg) {
+		pfnCoupleRailTrack = &CYapfCouple2::stFindNearestCoupleTrain; // Trackdir, forbid 90-deg
+	}
+
+	bool td_ret = pfnCoupleRailTrack(v, t1, override_railtype, dont_reserve);
+	//return (td_ret != INVALID_TRACKDIR) ? TrackdirToTrack(td_ret) : FindFirstTrack(tracks);
+	return INVALID_TRACK;
 }
 
 bool YapfTrainCheckReverse(const Train *v)
