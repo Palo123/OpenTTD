@@ -2063,6 +2063,9 @@ static Train *DecoupleTrain(Train *v)
 	//InvalidateWindowClassesData(WC_TRAINS_LIST, 0);
 	//assert(false);
 	if (!CanTrainFitStation(v)) return v; 
+	if (CountVehiclesInChain(v) < 2) return v;
+	if (v->Next()->IsArticulatedPart()) return v;
+	if (v->Last()->IsRearDualheaded()) return v;
 	Train *first_param = nullptr;
 	Train *u = v->GetNextUnit();
 	
@@ -3940,7 +3943,7 @@ static void Couple(Train *v, Train *u, bool train_u_reversed)
 static Train *GetCouplePosition(Train *v, bool &reverse)
 {
 
-	
+	if (CountVehiclesInChain(v) != 1) return NULL;
 	// TO DO real Find train
 	Vehicle *other_vehicle = nullptr;
 	FollowTrainReservation(v, &other_vehicle);
