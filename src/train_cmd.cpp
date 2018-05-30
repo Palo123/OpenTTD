@@ -1123,6 +1123,7 @@ static void NormaliseTrainHead(Train *head)
 	UpdateTrainGroupID(head);
 
 	/* Not a front engine, i.e. a free wagon chain. No need to do more. */
+	//if (!head->IsPrimaryVehicle()) return;
 	if (!head->IsFrontEngine()) return;
 
 	/* Update the refit button and window */
@@ -1609,7 +1610,7 @@ void ReverseTrainSwapVeh(Train *v, int l, int r)
 }
 
 static void ReverseTrainChainDir(Train *v) {
-	for (Train *a = v; a != NULL; a = a->Next()) {
+	for (Train *a = v; a != nullptr; a = a->Next()) {
 		a->direction = ReverseDir(a->direction);
 	}
 }
@@ -1617,10 +1618,10 @@ static void ReverseTrainChainDir(Train *v) {
 static Train *ReverseTrainChain(Train *v)
 {
 	Train *new_first = v->Last();
-	Train *tmp = NULL;
+	Train *tmp = nullptr;
 	Train *tmp2;
 	bool first = true;
-	for (Train *a = v; a != NULL; a = a->Next()) {
+	for (Train *a = v; a != nullptr; a = a->Next()) {
 		
 		if (first) {
 			first = false;
@@ -2009,22 +2010,48 @@ CommandCost CmdForceTrainProceed(TileIndex tile, DoCommandFlag flags, uint32 p1,
 	return CommandCost();
 }
 
+static bool CanTrainFitStation(Train *v)
+{
+	StationID sid = GetStationIndex(v->tile);
+	const Station *st = Station::Get(sid);
+	int station_length = st->GetPlatformLength(v->tile) * TILE_SIZE;
+
+	return v->gcache.cached_total_length <= station_length;
+}
+
 static Train *DecoupleTrain(Train *v)
 {
+	
+	//InvalidateWindowClassesData(WC_TRAINS_LIST, 0);
 	//assert(false);
-	Train *first_param = NULL;
+	if (!CanTrainFitStation(v)) return v; 
+	Train *first_param = nullptr;
 	Train *u = v->GetNextUnit();
+	
+	
 	//ArrangeTrains(Train **dst_head, Train *dst, Train **src_head, Train *src, bool move_chain);	
-	ArrangeTrains(&first_param, NULL, &v, u, true);
+	ArrangeTrains(&first_param, nullptr, &v, u, true);
 	if (u->IsEngine()) {
 		u->SetFrontEngine();
 		u->vehstatus &= ~VS_STOPPED;
 	} else {
 		u->SetFrontWagon();
 	}
-	UpdateTrainGroupID(u);
+	SetTrainGroupID(u, DEFAULT_GROUP);
+	GroupStatistics::CountVehicle(v, -1);
+	
+	GroupStatistics::CountVehicle(v, 1);
+	GroupStatistics::CountVehicle(u, 1);
+	
+	
+	//UpdateTrainGroupID(u);
 	//assert(false);
-	if (u->orders.list == NULL && !OrderList::CanAllocateItem()) return u;
+
+	
+	NormaliseTrainHead(u);
+	NormaliseTrainHead(v);
+	u->unitnumber = GetFreeUnitNumber(VEH_TRAIN, u->owner);
+	if (u->orders.list == nullptr && !OrderList::CanAllocateItem()) return u;
 	if (Order::CanAllocateItem(2)) {
 		Order *copy = new Order();
 	//assert(false);
@@ -2036,6 +2063,7 @@ static Train *DecoupleTrain(Train *v)
 		InsertOrder(u, wait_for_couple, 1);
 		//Order *wait_order = new Order();
 	}
+	InvalidateWindowClassesData(WC_TRAINS_LIST, 0);
 	return u;
 	//u->orders.list->InsertOrderAt(copy, 0);
 	//u->SetFrontEngine();
@@ -2658,7 +2686,7 @@ static Track ChooseTrainTrack(Train *v, TileIndex tile, DiagDirection enterdir, 
 			if (changed_signal) SetSignalStateByTrackdir(tile, TrackEnterdirToTrackdir(best_track, enterdir), SIGNAL_STATE_RED);
 			return FindFirstTrack(origin_tracks);
 		}
-		if (got_reservation != NULL) *got_reservation = true;
+		if (got_reservation != nullptr) *got_reservation = true;
 		/*if (!res_dest.okay) {
 			if (mark_stuck) MarkTrainAsStuck(v);
 			FreeTrainTrackReservation(v);
@@ -2906,7 +2934,7 @@ static void TrainEnterStation(Train *v, StationID station)
 {
 	//v->last_station_visited = station;
 	
-	Train *u = NULL;
+	Train *u = nullptr;
 	if (v->current_order.GetDecouple() == 1) {
 		u = DecoupleTrain(v);
 		ProcessOrders(u);
@@ -2935,9 +2963,9 @@ static void TrainEnterStation(Train *v, StationID station)
 	u->force_proceed = TFP_NONE;
 	SetWindowDirty(WC_VEHICLE_VIEW, u->index);
 
-	v->BeginLoading();
+	u->BeginLoading();
 	if (v->index != u->index) {
-		u->BeginLoading();
+		v->IncrementImplicitOrderIndex();
 	}
 
 	TriggerStationRandomisation(st, u->tile, SRT_TRAIN_ARRIVES);
@@ -3848,6 +3876,7 @@ static void Couple(Train *v, Train *u, bool train_u_reversed)
 	DeleteVehicleOrders(u);
 	RemoveVehicleFromGroup(u);
 	u->unitnumber = 0;
+	GroupStatistics::CountVehicle(u, -1);
 	
 	if (train_u_reversed) {
 		u->ClearFrontWagon();
@@ -3862,6 +3891,7 @@ static void Couple(Train *v, Train *u, bool train_u_reversed)
 	u->ClearFrontWagon();
 	
 	v->direction = ReverseDir(v->direction);
+	NormaliseTrainHead(v);
 	v->IncrementImplicitOrderIndex();
 }
 
@@ -3870,15 +3900,12 @@ static Train *GetCouplePosition(Train *v, bool &reverse)
 
 	
 	// TO DO real Find train
-	Vehicle *other_vehicle = NULL;
+	Vehicle *other_vehicle = nullptr;
 	FollowTrainReservation(v, &other_vehicle);
 	
-	if (other_vehicle == NULL) {
-		return NULL;
-	}
-	if (other_vehicle->First()->index == v->index) {
-		return NULL;
-	}
+	if (other_vehicle == nullptr) return nullptr;
+	if (other_vehicle->First()->index == v->index) return nullptr;
+	if (!other_vehicle->current_order.IsType(OT_WAIT_COUPLE)) return nullptr;
 	Train *u = Train::From(other_vehicle);
 	
 	int x_diff = abs(v->x_pos - u->x_pos);
@@ -3892,7 +3919,7 @@ static Train *GetCouplePosition(Train *v, bool &reverse)
 	}
 	
 	Train *z;
-	for (z = u;z->Next() != NULL; z = z->Next());
+	for (z = u;z->Next() != nullptr; z = z->Next());
 	
 	x_diff = abs(v->x_pos - z->x_pos);
 	y_diff = abs(v->y_pos - z->y_pos);
@@ -3905,14 +3932,14 @@ static Train *GetCouplePosition(Train *v, bool &reverse)
 	}
 	
 	//Compute couple positions
-	return NULL;
+	return nullptr;
 }
 
 static bool TrainCoupleHandler(Train *v)
 {
 	bool reverse;
 	Train *u = GetCouplePosition(v, reverse);
-	if (u == NULL) return false;
+	if (u == nullptr) return false;
 	Couple(v, u, reverse);
 	return true;
 }
@@ -4009,7 +4036,7 @@ static bool TrainLocoHandler(Train *v, bool mode)
 	}
 
 	int j = v->UpdateSpeed();
-
+	
 	/* we need to invalidate the widget if we are stopping from 'Stopping 0 km/h' to 'Stopped' */
 	if (v->cur_speed == 0 && (v->vehstatus & VS_STOPPED)) {
 		/* If we manually stopped, we're not force-proceeding anymore. */

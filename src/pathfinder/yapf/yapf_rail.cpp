@@ -38,6 +38,42 @@ template <typename Tpf> void DumpState(Tpf &pf1, Tpf &pf2)
 
 int _total_pf_time_us = 0;
 
+/**
+ * Helper struct for finding the best matching vehicle on a specific track.
+ */
+struct FindTrainOnTrackInfo {
+	Trackdir res; ///< Information about the track.
+	Train *best;     ///< The currently "best" vehicle we have found.
+	Train *second_best; ///< Maybe there are 2 trains
+	const Train *self;     ///< We are not looking for our train
+
+	/** Init the best location to NULL always! */
+	FindTrainOnTrackInfo() : best(NULL), second_best(NULL) {}
+};
+
+/** Callback for Has/FindVehicleOnPos to find a train on a specific track. */
+static Vehicle *FindTrainOnTrackEnum(Vehicle *v, void *data)
+{
+	FindTrainOnTrackInfo *info = (FindTrainOnTrackInfo *)data;
+
+	if (v->type != VEH_TRAIN || (v->vehstatus & VS_CRASHED)) return NULL;
+
+	Train *t = Train::From(v);
+	if (t->track == TRACK_BIT_WORMHOLE || HasBit((TrackBits)t->track, TrackdirToTrack(info->res))) {
+		t = t->First();
+		/* We are not looking for ourself */
+		if (t->index == info->self->index) return NULL;
+
+		/* We assume only presence of the train, we shouldn't use train itself because of desync */
+		if (info->best != NULL && t->index != info->best->index) info->second_best = t;
+		/* ALWAYS return the lowest ID (anti-desync!) */
+		if (info->best == NULL || t->index < info->best->index) info->best = t;
+		return t;
+	}
+
+	return NULL;
+}
+
 template <class Types>
 class CYapfReserveTrack
 {
@@ -76,11 +112,29 @@ private:
 		TrackdirBits tdb = TrackdirToTrackdirBits(td);
 		TrackBits tracks = TrackdirBitsToTrackBits(tdb);
 		if (HasReservedTracks(tile, tracks)) {
-			Train *t = GetTrainForReservation(tile, TrackdirToTrack(td));
-			if (t->current_order.IsType(OT_WAIT_COUPLE)) {
-				return true;
+			FindTrainOnTrackInfo ftoti;
+			ftoti.res = td;
+			if (IsRailStationTile(tile)) {
+			TileIndexDiff diff = TileOffsByDiagDir(TrackdirToExitdir(ReverseTrackdir(td)));
+				for (TileIndex st_tile = tile + diff; IsCompatibleTrainStationTile(st_tile, tile); st_tile += diff) {
+					FindVehicleOnPos(st_tile, &ftoti, FindTrainOnTrackEnum);
+				}
 			}
-			return false;
+			FindVehicleOnPos(tile, &ftoti, FindTrainOnTrackEnum);
+			if (ftoti.best != NULL) {
+				Train *t = ftoti.best;
+				if (!t->current_order.IsType(OT_WAIT_COUPLE)) {
+					return false;
+				}
+				if (ftoti.second_best != NULL) {
+					return false;
+				}
+			}
+		} else if (GetReservedTrackbits(tile) != TRACK_BIT_NONE) {
+			if (!TryReserveRailTrack(tile, TrackdirToTrack(td))) {
+				return false;
+			}
+			UnreserveRailTrack(tile, TrackdirToTrack(td));
 		}
 		return true;
 	}

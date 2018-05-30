@@ -203,36 +203,6 @@ public:
 	}
 };
 
-/**
- * Helper struct for finding the best matching vehicle on a specific track.
- */
-struct FindTrainOnTrackInfo {
-	Trackdir res; ///< Information about the track.
-	Train *best;     ///< The currently "best" vehicle we have found.
-
-	/** Init the best location to NULL always! */
-	FindTrainOnTrackInfo() : best(NULL) {}
-};
-
-/** Callback for Has/FindVehicleOnPos to find a train on a specific track. */
-static Vehicle *FindTrainOnTrackEnum(Vehicle *v, void *data)
-{
-	FindTrainOnTrackInfo *info = (FindTrainOnTrackInfo *)data;
-
-	if (v->type != VEH_TRAIN || (v->vehstatus & VS_CRASHED)) return NULL;
-
-	Train *t = Train::From(v);
-	if (t->track == TRACK_BIT_WORMHOLE || HasBit((TrackBits)t->track, TrackdirToTrack(info->res))) {
-		t = t->First();
-
-		/* ALWAYS return the lowest ID (anti-desync!) */
-		if (info->best == NULL || t->index < info->best->index) info->best = t;
-		return t;
-	}
-
-	return NULL;
-}
-
 template <class Types>
 class CYapfDestinationTrainRailT : public CYapfDestinationRailBase {
 public:
@@ -257,18 +227,11 @@ public:
 	{
 		TrackdirBits tdb = TrackdirToTrackdirBits(td);
 		if (!HasReservedTracks(tile, TrackdirBitsToTrackBits(tdb))) return false;
-		FindTrainOnTrackInfo ftoti;
-		ftoti.res = td;
-		FindVehicleOnPos(tile, &ftoti, FindTrainOnTrackEnum);
-		if (ftoti.best != NULL) {
-			Train *t = ftoti.best;
-			if (t->current_order.IsType(OT_WAIT_COUPLE)) {
-				return true;
-			}
+		Train *t = GetTrainForReservation(tile, TrackdirToTrack(td));
+		if (t->current_order.IsType(OT_WAIT_COUPLE)) {
+			return true;
 		}
-		//FindVehicleOnPos
-		return false;// IsSafeWaitingPosition(Yapf().GetVehicle(), tile, td, true, !TrackFollower::Allow90degTurns()) &&
-				//IsWaitingPositionFree(Yapf().GetVehicle(), tile, td, !TrackFollower::Allow90degTurns());
+		return false;
 	}
 
 	/**

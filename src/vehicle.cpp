@@ -1723,7 +1723,7 @@ UnitID FreeUnitIDGenerator::NextID()
  * @param type Type of vehicle
  * @return A unused unit number for the given type of vehicle if it is allowed to build one, else \c UINT16_MAX.
  */
-UnitID GetFreeUnitNumber(VehicleType type)
+UnitID GetFreeUnitNumber(VehicleType type, Owner owner)
 {
 	/* Check whether it is allowed to build another vehicle. */
 	uint max_veh;
@@ -1735,10 +1735,11 @@ UnitID GetFreeUnitNumber(VehicleType type)
 		default: NOT_REACHED();
 	}
 
-	const Company *c = Company::Get(_current_company);
+	owner = owner == INVALID_COMPANY ? _current_company : owner;
+	const Company *c = Company::Get(owner);
 	if (c->group_all[type].num_vehicle >= max_veh) return UINT16_MAX; // Currently already at the limit, no room to make a new one.
 
-	FreeUnitIDGenerator gen(type, _current_company);
+	FreeUnitIDGenerator gen(type, owner);
 
 	return gen.NextID();
 }

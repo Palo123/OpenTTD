@@ -65,7 +65,7 @@ void CheckVehicleBreakdown(Vehicle *v);
 void AgeVehicle(Vehicle *v);
 void VehicleEnteredDepotThisTick(Vehicle *v);
 
-UnitID GetFreeUnitNumber(VehicleType type);
+UnitID GetFreeUnitNumber(VehicleType type, Owner owner = INVALID_COMPANY);
 
 void VehicleEnterDepot(Vehicle *v);
 

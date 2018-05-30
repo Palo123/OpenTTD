@@ -79,7 +79,7 @@ static Vehicle *FindOtherTrainOnTrackEnum(Vehicle *v, void *data)
 	FindOtherTrainOnTrackInfo *foti = (FindOtherTrainOnTrackInfo *) data;
 	const Train *u = foti->other;
 
-	if (v->type != VEH_TRAIN) return NULL;
+	if (v->type != VEH_TRAIN) return nullptr;
 
 	Train *t = Train::From(v);
 	if (t->First()->index != u->First()->index) {
@@ -87,7 +87,7 @@ static Vehicle *FindOtherTrainOnTrackEnum(Vehicle *v, void *data)
 		return t;
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 bool IsRailStationPlatformFree(const Train *v, TileIndex start, DiagDirection dir)
@@ -295,9 +295,10 @@ static PBSTileInfo FollowReservation(Owner o, RailTypes rts, TileIndex tile, Tra
 struct FindTrainOnTrackInfo {
 	PBSTileInfo res; ///< Information about the track.
 	Train *best;     ///< The currently "best" vehicle we have found.
+	const Train *self;     ///< We are not looking for our train
 
 	/** Init the best location to nullptr always! */
-	FindTrainOnTrackInfo() : best(nullptr) {}
+	FindTrainOnTrackInfo() : best(nullptr), self(nullptr) {}
 };
 
 /** Callback for Has/FindVehicleOnPos to find a train on a specific track. */
@@ -310,6 +311,8 @@ static Vehicle *FindTrainOnTrackEnum(Vehicle *v, void *data)
 	Train *t = Train::From(v);
 	if (t->track == TRACK_BIT_WORMHOLE || HasBit((TrackBits)t->track, TrackdirToTrack(info->res.trackdir))) {
 		t = t->First();
+		/* We are not looking for ourself */
+		if (info->self != nullptr && t->index == info->self->index) return nullptr;
 
 		/* ALWAYS return the lowest ID (anti-desync!) */
 		if (info->best == nullptr || t->index < info->best->index) info->best = t;
@@ -338,6 +341,7 @@ PBSTileInfo FollowTrainReservation(const Train *v, Vehicle **train_on_res)
 	FindTrainOnTrackInfo ftoti;
 	ftoti.res = FollowReservation(v->owner, GetRailTypeInfo(v->railtype)->compatible_railtypes, tile, trackdir);
 	ftoti.res.okay = IsSafeWaitingPosition(v, ftoti.res.tile, ftoti.res.trackdir, true, _settings_game.pf.forbid_90_deg);
+	ftoti.self = v;
 	if (train_on_res != nullptr) {
 		FindVehicleOnPos(ftoti.res.tile, &ftoti, FindTrainOnTrackEnum);
 		if (ftoti.best != nullptr) *train_on_res = ftoti.best->First();

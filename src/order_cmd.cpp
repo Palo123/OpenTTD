@@ -292,6 +292,7 @@ void Order::AssignOrder(const Order &other)
 	this->type  = other.type;
 	this->flags = other.flags;
 	this->dest  = other.dest;
+	this->decouple_flags = other.decouple_flags;
 
 	this->refit_cargo   = other.refit_cargo;
 
