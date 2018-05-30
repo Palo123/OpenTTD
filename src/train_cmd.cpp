@@ -1730,6 +1730,44 @@ static inline void MaybeBarCrossingWithSound(TileIndex tile)
 }
 
 
+static void AdvanceWagonsBeforeReverse(Train *v)
+{
+	int difference = 0;
+	for (Train *a = v->Last(); a->Previous() != NULL; a = a->Previous()) {
+		if (a->gcache.cached_veh_length & 1) difference--;
+		if (a->Previous()->gcache.cached_veh_length & 1) difference++;
+		if (difference > 0) {
+			for (int i = 0; i < difference; i++) TrainController(a->Previous(), a);
+		}
+	}
+}
+
+static void AdvanceWagonsAfterReverse(Train *v)
+{
+	int difference = 0;
+	for (Train *a = v; a->Next() != NULL; a = a->Next()) {
+		if (a->gcache.cached_veh_length & 1) difference++;
+		if (a->Next()->gcache.cached_veh_length & 1) difference--;
+		if (difference > 0) {
+			for (int i = 0; i < difference; i++) TrainController(a->Next(), a->Next()->Next());
+		}
+	}
+}
+
+static void AdvanceWagonsAfterCouple(Train *v)
+{
+	int difference = v->CalcNextVehicleOffset();
+	int diff_x = abs(v->x_pos - v->Next()->x_pos);
+	int diff_y = abs(v->y_pos - v->Next()->y_pos);
+	int real_diff = max(diff_x, diff_y);
+	real_diff = real_diff - difference;
+	
+	assert(real_diff >= 0);
+	
+	for (int i = 0; i < real_diff; i++) TrainController(v->Next(), NULL);
+}
+
+
 /**
  * Advances wagons for train reversing, needed for variable length wagons.
  * This one is called before the train is reversed.
@@ -3880,8 +3918,10 @@ static void Couple(Train *v, Train *u, bool train_u_reversed)
 	
 	if (train_u_reversed) {
 		u->ClearFrontWagon();
+		AdvanceWagonsBeforeReverse(u);
 		u = ReverseTrainChain(u);
 		ReverseTrainChainDir(u);
+		AdvanceWagonsAfterReverse(u);
 		u->SetFrontWagon();
 	}
 	 
@@ -3893,6 +3933,8 @@ static void Couple(Train *v, Train *u, bool train_u_reversed)
 	v->direction = ReverseDir(v->direction);
 	NormaliseTrainHead(v);
 	v->IncrementImplicitOrderIndex();
+	AdvanceWagonsAfterCouple(v);
+	InvalidateWindowClassesData(WC_TRAINS_LIST, 0);
 }
 
 static Train *GetCouplePosition(Train *v, bool &reverse)
@@ -3926,7 +3968,7 @@ static Train *GetCouplePosition(Train *v, bool &reverse)
 	
 	diff = max(x_diff, y_diff);
 	
-	if (diff == ((v->gcache.cached_veh_length + 1) / 2 + (z->gcache.cached_veh_length) / 2)) {
+	if (diff == ((v->gcache.cached_veh_length + 1) / 2 + (z->gcache.cached_veh_length + 1) / 2)) {
 		reverse = true;
 		return u;
 	}
@@ -4058,6 +4100,7 @@ static bool TrainLocoHandler(Train *v, bool mode)
 			if (v->current_order.IsType(OT_GOTO_COUPLE)) {
 				if (TrainCoupleHandler(v)) {
 					v->cur_speed = 0;
+					v->progress = 0;
 					break;
 				}
 			}

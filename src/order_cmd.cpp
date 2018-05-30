@@ -258,6 +258,7 @@ Order::Order(uint32 packed)
 	this->wait_time     = 0;
 	this->travel_time   = 0;
 	this->max_speed     = UINT16_MAX;
+	this->decouple_flags = 0;
 }
 
 /**
