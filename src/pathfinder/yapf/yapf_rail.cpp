@@ -45,7 +45,6 @@ struct FindTrainOnTrackInfo {
 	Trackdir res; ///< Information about the track.
 	Train *best;     ///< The currently "best" vehicle we have found.
 	Train *second_best; ///< Maybe there are 2 trains
-	const Train *self;     ///< We are not looking for our train
 
 	/** Init the best location to NULL always! */
 	FindTrainOnTrackInfo() : best(NULL), second_best(NULL) {}
@@ -61,8 +60,6 @@ static Vehicle *FindTrainOnTrackEnum(Vehicle *v, void *data)
 	Train *t = Train::From(v);
 	if (t->track == TRACK_BIT_WORMHOLE || HasBit((TrackBits)t->track, TrackdirToTrack(info->res))) {
 		t = t->First();
-		/* We are not looking for ourself */
-		if (t->index == info->self->index) return NULL;
 
 		/* We assume only presence of the train, we shouldn't use train itself because of desync */
 		if (info->best != NULL && t->index != info->best->index) info->second_best = t;
