@@ -3800,6 +3800,7 @@ STR_VEHICLE_STATUS_AIRCRAFT_TOO_FAR                             :{ORANGE}Too far
 
 STR_VEHICLE_STATUS_HEADING_FOR_STATION_VEL                      :{LTBLUE}Heading for {STATION}, {VELOCITY}
 STR_VEHICLE_STATUS_NO_ORDERS_VEL                                :{LTBLUE}No orders, {VELOCITY}
+STR_VEHICLE_STATUS_HEADING_FOR_COUPLE_VEL                       :{LTBLUE}Heading for couple, {VELOCITY}
 STR_VEHICLE_STATUS_HEADING_FOR_WAYPOINT_VEL                     :{LTBLUE}Heading for {WAYPOINT}, {VELOCITY}
 STR_VEHICLE_STATUS_HEADING_FOR_DEPOT_VEL                        :{ORANGE}Heading for {DEPOT}, {VELOCITY}
 STR_VEHICLE_STATUS_HEADING_FOR_DEPOT_SERVICE_VEL                :{LTBLUE}Service at {DEPOT}, {VELOCITY}
@@ -4036,6 +4037,8 @@ STR_ORDER_NO_UNLOAD                                             :(No unloading a
 STR_ORDER_NO_UNLOAD_FULL_LOAD                                   :(No unloading and wait for full load)
 STR_ORDER_NO_UNLOAD_FULL_LOAD_ANY                               :(No unloading and wait for any full load)
 STR_ORDER_NO_UNLOAD_NO_LOAD                                     :(No unloading and no loading)
+
+STR_ORDER_DECOUPLE                                              :(Decouple)
 
 STR_ORDER_AUTO_REFIT                                            :(Refit to {STRING})
 STR_ORDER_FULL_LOAD_REFIT                                       :(Full load with refit to {STRING})

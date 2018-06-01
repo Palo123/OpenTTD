@@ -3959,7 +3959,8 @@ static Train *GetCouplePosition(Train *v, bool &reverse)
 	int diff = max(x_diff, y_diff);
 	
 	if (diff == ((v->gcache.cached_veh_length + 1) / 2 + (u->gcache.cached_veh_length + 1) / 2)) {
-		reverse = false;
+		DirDiff dir_diff = DirDifference(v->direction, u->direction);
+		reverse = dir_diff == DIRDIFF_SAME || dir_diff == DIRDIFF_45RIGHT || dir_diff == DIRDIFF_45LEFT;
 		return u;
 	}
 	

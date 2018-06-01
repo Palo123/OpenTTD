@@ -274,6 +274,9 @@ void DrawOrderString(const Vehicle *v, const Order *order, int order_index, int 
 				}
 			} else {
 				SetDParam(3, (order->GetNonStopType() & ONSF_NO_STOP_AT_DESTINATION_STATION) ? STR_EMPTY : _station_load_types[order->IsRefit()][unload][load]);
+				//if (order->GetDecouple()) {
+				//	SetDParam(4, STR_ORDER_DECOUPLE);
+				//}
 				if (order->IsRefit()) {
 					SetDParam(4, order->IsAutoRefit() ? STR_ORDER_AUTO_REFIT_ANY : CargoSpec::Get(order->GetRefitCargo())->name);
 				}

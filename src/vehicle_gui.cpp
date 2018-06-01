@@ -2862,6 +2862,12 @@ public:
 					SetDParam(1, v->GetDisplaySpeed());
 					break;
 				}
+				
+				case OT_GOTO_COUPLE: {
+					SetDParam(0, v->GetDisplaySpeed());
+					str = STR_VEHICLE_STATUS_HEADING_FOR_COUPLE_VEL;
+					break;
+				}
 
 				case OT_LEAVESTATION:
 					if (v->type != VEH_AIRCRAFT) {
