@@ -1612,7 +1612,6 @@ void ReverseTrainSwapVeh(Train *v, int l, int r)
 static void ReverseTrainChainDir(Train *v) {
 	for (Train *a = v; a != nullptr; a = a->Next()) {
 		a->direction = ReverseDir(a->direction);
-		ToggleBit(a->flags, VRF_REVERSE_DIRECTION);
 	}
 }
 
@@ -3928,15 +3927,13 @@ static void Couple(Train *v, Train *u, bool train_u_reversed)
 		AdvanceWagonsAfterReverse(u);
 		u->SetFrontWagon();
 	}
-	
-	ReverseTrainChainDir(v);
 	 
 	Train *u_head = u;
 	ArrangeTrains(&v, v, &u_head, u, true);
 	
 	u->ClearFrontWagon();
-	u->ClearFrontEngine();
 	
+	v->direction = ReverseDir(v->direction);
 	NormaliseTrainHead(v);
 	v->IncrementImplicitOrderIndex();
 	AdvanceWagonsAfterCouple(v);
