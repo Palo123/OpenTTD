@@ -158,6 +158,7 @@ enum ModifyOrderFlags {
 	MOF_COND_VALUE,      ///< The value to set the condition to.
 	MOF_COND_DESTINATION,///< Change the destination of a conditional order.
 	MOF_DECOUPLE        ,///< Change decouple option.
+	MOF_DECOUPLE_VALUE  ,///< Change number of decoupled units.
 	MOF_END
 };
 template <> struct EnumPropsT<ModifyOrderFlags> : MakeEnumPropsT<ModifyOrderFlags, byte, MOF_NON_STOP, MOF_END, MOF_END, 4> {};

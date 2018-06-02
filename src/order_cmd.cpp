@@ -1311,7 +1311,7 @@ CommandCost CmdModifyOrder(TileIndex tile, DoCommandFlag flags, uint32 p1, uint3
 	Order *order = v->GetOrder(sel_ord);
 	switch (order->GetType()) {
 		case OT_GOTO_STATION:
-			if (mof != MOF_NON_STOP && mof != MOF_STOP_LOCATION && mof != MOF_UNLOAD && mof != MOF_LOAD && mof != MOF_DECOUPLE) return CMD_ERROR;
+			if (mof != MOF_NON_STOP && mof != MOF_STOP_LOCATION && mof != MOF_UNLOAD && mof != MOF_LOAD && mof != MOF_DECOUPLE && mof!= MOF_DECOUPLE_VALUE) return CMD_ERROR;
 			break;
 
 		case OT_GOTO_DEPOT:
@@ -1338,6 +1338,10 @@ CommandCost CmdModifyOrder(TileIndex tile, DoCommandFlag flags, uint32 p1, uint3
 			if (order->GetNonStopType() & ONSF_NO_STOP_AT_DESTINATION_STATION) return CMD_ERROR;
 			break;
 
+		case MOF_DECOUPLE_VALUE:	
+			if (data > 127) return CMD_ERROR;
+			break;
+			
 		case MOF_NON_STOP:
 			if (!v->IsGroundVehicle()) return CMD_ERROR;
 			if (data >= ONSF_END) return CMD_ERROR;
@@ -1499,6 +1503,10 @@ CommandCost CmdModifyOrder(TileIndex tile, DoCommandFlag flags, uint32 p1, uint3
 			case MOF_DECOUPLE:
 				order->SetDecouple(data);
 				break;
+				
+			case MOF_DECOUPLE_VALUE:
+				order->SetNumDecouple(data);
+				break;
 
 			default: NOT_REACHED();
 		}
@@ -1516,10 +1524,15 @@ CommandCost CmdModifyOrder(TileIndex tile, DoCommandFlag flags, uint32 p1, uint3
 			 * so do not care and those orders should not be active
 			 * when this function is called.
 			 */
-			if (sel_ord == u->cur_real_order_index &&
-					(u->current_order.IsType(OT_GOTO_STATION) || u->current_order.IsType(OT_LOADING)) &&
-					u->current_order.GetLoadType() != order->GetLoadType()) {
-				u->current_order.SetLoadType(order->GetLoadType());
+			if (sel_ord == u->cur_real_order_index) {			
+				if ((u->current_order.IsType(OT_GOTO_STATION) || u->current_order.IsType(OT_LOADING)) &&
+						u->current_order.GetLoadType() != order->GetLoadType()) {
+					u->current_order.SetLoadType(order->GetLoadType());
+				}
+				if (u->current_order.IsType(OT_GOTO_STATION)) {
+					u->current_order.SetDecouple(order->GetDecouple());
+					u->current_order.SetNumDecouple(order->GetNumDecouple());
+				}
 			}
 			InvalidateVehicleOrder(u, VIWD_MODIFY_ORDERS);
 		}

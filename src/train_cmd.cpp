@@ -2857,8 +2857,11 @@ bool TryPathReserve(Train *v, bool mark_as_stuck, bool first_tile_okay)
 	 * Exit here as doing any further reservations will probably just
 	 * make matters worse. */
 	if (other_train != nullptr && other_train->index != v->index && other_train->tile != v->tile) {
-		if (mark_as_stuck) MarkTrainAsStuck(v);
-		return false;
+		/* If we are both at the station, we prob just decoupled and we can continue */
+		if (!IsRailStationTile(v->tile) || !IsRailStationTile(other_train->tile)) {
+			if (mark_as_stuck) MarkTrainAsStuck(v);
+			return false;
+		}
 	}
 	/* If we have a reserved path and the path ends at a safe tile, we are finished already. */
 	if (origin.okay && (v->tile != origin.tile || first_tile_okay)) {

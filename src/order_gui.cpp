@@ -113,6 +113,12 @@ static const StringID _order_non_stop_drowdown[] = {
 	INVALID_STRING_ID
 };
 
+static const StringID _order_decouple_drowdown[] = {
+	STR_ORDERS_DECOUPLE_BUTTON,
+	STR_ORDERS_DECOUPLE_BUTTON,
+	INVALID_STRING_ID
+};
+
 static const StringID _order_full_load_drowdown[] = {
 	STR_ORDER_DROP_LOAD_IF_POSSIBLE,
 	STR_EMPTY,
@@ -1371,7 +1377,11 @@ public:
 				ShowVehicleListWindow(this->vehicle);
 				break;
 			case WID_O_DECOUPLE:
-				OrderClick_Decouple(-1);
+				if (this->GetWidget<NWidgetLeaf>(widget)->ButtonHit(pt)) {
+					OrderClick_Decouple(-1);
+				} else {
+					ShowDropDownMenu(this, _order_decouple_drowdown, 0, WID_O_DECOUPLE, 0, 0);
+				}
 				break;
 		}
 	}
@@ -1381,21 +1391,24 @@ public:
 		if (!StrEmpty(str)) {
 			VehicleOrderID sel = this->OrderGetSel();
 			uint value = atoi(str);
+			if (this->vehicle->GetOrder(sel)->IsType(OT_CONDITIONAL)) {
+				switch (this->vehicle->GetOrder(sel)->GetConditionVariable()) {
+					case OCV_MAX_SPEED:
+						value = ConvertDisplaySpeedToSpeed(value);
+						break;
 
-			switch (this->vehicle->GetOrder(sel)->GetConditionVariable()) {
-				case OCV_MAX_SPEED:
-					value = ConvertDisplaySpeedToSpeed(value);
-					break;
+					case OCV_RELIABILITY:
+					case OCV_LOAD_PERCENTAGE:
+						value = Clamp(value, 0, 100);
+						break;
 
-				case OCV_RELIABILITY:
-				case OCV_LOAD_PERCENTAGE:
-					value = Clamp(value, 0, 100);
-					break;
-
-				default:
-					break;
+					default:
+						break;
+				}
+				DoCommandP(this->vehicle->tile, this->vehicle->index + (sel << 20), MOF_COND_VALUE | Clamp(value, 0, 2047) << 4, CMD_MODIFY_ORDER | CMD_MSG(STR_ERROR_CAN_T_MODIFY_THIS_ORDER));
+			} else {
+				DoCommandP(this->vehicle->tile, this->vehicle->index + (sel << 20), MOF_DECOUPLE_VALUE | Clamp(value, 1, 127) << 4, CMD_MODIFY_ORDER | CMD_MSG(STR_ERROR_CAN_T_MODIFY_THIS_ORDER));
 			}
-			DoCommandP(this->vehicle->tile, this->vehicle->index + (sel << 20), MOF_COND_VALUE | Clamp(value, 0, 2047) << 4, CMD_MODIFY_ORDER | CMD_MSG(STR_ERROR_CAN_T_MODIFY_THIS_ORDER));
 		}
 	}
 
@@ -1440,6 +1453,15 @@ public:
 
 			case WID_O_COND_COMPARATOR:
 				DoCommandP(this->vehicle->tile, this->vehicle->index + (this->OrderGetSel() << 20), MOF_COND_COMPARATOR | index << 4,  CMD_MODIFY_ORDER | CMD_MSG(STR_ERROR_CAN_T_MODIFY_THIS_ORDER));
+				break;
+				
+			case WID_O_DECOUPLE:
+				if (index == 0) {
+					this->OrderClick_Decouple(index);
+				} else {
+					SetDParam(0, 1);
+					ShowQueryString(STR_JUST_INT, STR_ORDER_CONDITIONAL_VALUE_CAPT, 4, this, CS_NUMERAL, QSF_NONE);
+				}
 				break;
 		}
 	}
@@ -1643,7 +1665,7 @@ static const NWidgetPart _nested_orders_train_widgets[] = {
 		NWidget(NWID_HORIZONTAL, NC_EQUALSIZE),
 			NWidget(WWT_PUSHTXTBTN, COLOUR_GREY, WID_O_SKIP), SetMinimalSize(124, 12), SetFill(1, 0),
 													SetDataTip(STR_ORDERS_SKIP_BUTTON, STR_ORDERS_SKIP_TOOLTIP), SetResize(1, 0),
-			NWidget(WWT_TEXTBTN, COLOUR_GREY, WID_O_DECOUPLE), SetMinimalSize(124, 12), SetFill(1, 0),
+			NWidget(NWID_BUTTON_DROPDOWN, COLOUR_GREY, WID_O_DECOUPLE), SetMinimalSize(124, 12), SetFill(1, 0),
 													SetDataTip(STR_ORDERS_DECOUPLE_BUTTON, STR_ORDERS_DECOUPLE_TOOLTIP), SetResize(1, 0),
 			NWidget(NWID_SELECTION, INVALID_COLOUR, WID_O_SEL_BOTTOM_MIDDLE),
 				NWidget(WWT_PUSHTXTBTN, COLOUR_GREY, WID_O_DELETE), SetMinimalSize(124, 12), SetFill(1, 0),
