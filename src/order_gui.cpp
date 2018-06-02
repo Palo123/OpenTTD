@@ -114,8 +114,8 @@ static const StringID _order_non_stop_drowdown[] = {
 };
 
 static const StringID _order_decouple_drowdown[] = {
-	STR_ORDERS_DECOUPLE_BUTTON,
-	STR_ORDERS_DECOUPLE_BUTTON,
+	STR_ORDERS_DECOUPLE_DROP,
+	STR_ORDERS_DECOUPLE_VALUE,
 	INVALID_STRING_ID
 };
 
@@ -1457,10 +1457,10 @@ public:
 				
 			case WID_O_DECOUPLE:
 				if (index == 0) {
-					this->OrderClick_Decouple(index);
+					this->OrderClick_Decouple(1);
 				} else {
 					SetDParam(0, 1);
-					ShowQueryString(STR_JUST_INT, STR_ORDER_CONDITIONAL_VALUE_CAPT, 4, this, CS_NUMERAL, QSF_NONE);
+					ShowQueryString(STR_JUST_INT, STR_ORDER_DECOUPLE_VALUE_CAPT, 4, this, CS_NUMERAL, QSF_NONE);
 				}
 				break;
 		}

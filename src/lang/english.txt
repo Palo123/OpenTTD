@@ -3980,7 +3980,11 @@ STR_ORDERS_SKIP_BUTTON                                          :{BLACK}Skip
 STR_ORDERS_SKIP_TOOLTIP                                         :{BLACK}Skip the current order, and start the next. Ctrl+Click skips to the selected order
 
 STR_ORDERS_DECOUPLE_BUTTON                                      :{BLACK}Decouple
+STR_ORDERS_DECOUPLE_DROP                                        :Decouple
+STR_ORDERS_DECOUPLE_VALUE                                       :Units decouple
 STR_ORDERS_DECOUPLE_TOOLTIP                                     :{BLACK}Decouple train at the station
+
+STR_ORDER_DECOUPLE_VALUE_CAPT                                   :{WHITE}Enter how many units will stay in train after decoupling
 
 STR_ORDERS_DELETE_BUTTON                                        :{BLACK}Delete
 STR_ORDERS_DELETE_TOOLTIP                                       :{BLACK}Delete the highlighted order
