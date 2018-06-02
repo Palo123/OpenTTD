@@ -2061,16 +2061,26 @@ static bool CanDecouple(Train *v)
 {
 	if (!CanTrainFitStation(v)) return false; 
 	if (CountVehiclesInChain(v) < 2) return false;
+	if (v->GetNextUnit() == nullptr) return false;
 	//if (v->Next()->IsArticulatedPart()) return false;
 	if (v->Last()->IsRearDualheaded()) return false;
 	return true;
+}
+
+static Train *GetDecoupleVehicle(Train *v)
+{
+	Train *ret = v->GetNextUnit();
+	for (int i = 1; i < v->current_order.GetNumDecouple() && ret->GetNextUnit() != nullptr; i++) {
+		ret = ret->GetNextUnit();
+	}
+	return ret;
 }
 
 static Train *DecoupleTrain(Train *v)
 {
 	if (!CanDecouple(v)) return v;
 	Train *first_param = nullptr;
-	Train *u = v->GetNextUnit();
+	Train *u = GetDecoupleVehicle(v);
 	
 	//ArrangeTrains(Train **dst_head, Train *dst, Train **src_head, Train *src, bool move_chain);	
 	ArrangeTrains(&first_param, nullptr, &v, u, true);
