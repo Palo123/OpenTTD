@@ -2068,7 +2068,7 @@ static bool CanDecouple(Train *v)
 
 static Train *DecoupleTrain(Train *v)
 {
-	if (!CanDecouple(v)) return v; 
+	if (!CanDecouple(v)) return v;
 	Train *first_param = nullptr;
 	Train *u = v->GetNextUnit();
 	
@@ -2846,7 +2846,7 @@ bool TryPathReserve(Train *v, bool mark_as_stuck, bool first_tile_okay)
 	 * block signals or when changing tracks and/or signals.
 	 * Exit here as doing any further reservations will probably just
 	 * make matters worse. */
-	if (other_train != nullptr && other_train->index != v->index) {
+	if (other_train != nullptr && other_train->index != v->index && other_train->tile != v->tile) {
 		if (mark_as_stuck) MarkTrainAsStuck(v);
 		return false;
 	}
@@ -3003,6 +3003,8 @@ static void TrainEnterStation(Train *v, StationID station)
 	u->BeginLoading();
 	if (v->index != u->index) {
 		v->IncrementImplicitOrderIndex();
+		ProcessOrders(v);
+		MarkTrainAsStuck(v);
 	}
 
 	TriggerStationRandomisation(st, u->tile, SRT_TRAIN_ARRIVES);
