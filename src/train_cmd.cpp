@@ -2850,7 +2850,7 @@ bool TryPathReserve(Train *v, bool mark_as_stuck, bool first_tile_okay)
 	}
 
 	Vehicle *other_train = nullptr;
-	PBSTileInfo origin = FollowTrainReservation(v, &other_train);
+	PBSTileInfo origin = FollowTrainReservation(v, v->tile, v->GetVehicleTrackdir(), &other_train);
 	/* The path we are driving on is already blocked by some other train.
 	 * This can only happen in certain situations when mixing path and
 	 * block signals or when changing tracks and/or signals.
@@ -3957,7 +3957,7 @@ static Train *GetCouplePosition(Train *v, bool &reverse)
 	//if (CountVehiclesInChain(v) != 1) return nullptr;
 	
 	Vehicle *other_vehicle = nullptr;
-	FollowTrainReservation(v, &other_vehicle);
+	FollowTrainReservation(v, v->tile, v->GetVehicleTrackdir(), &other_vehicle);
 	
 	if (other_vehicle == nullptr) return nullptr;
 	if (other_vehicle->First()->index == v->index) return nullptr;

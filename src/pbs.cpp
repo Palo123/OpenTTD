@@ -329,12 +329,15 @@ static Vehicle *FindTrainOnTrackEnum(Vehicle *v, void *data)
  * @param train_on_res Is set to a train we might encounter
  * @returns The last tile of the reservation or the current train tile if no reservation present.
  */
-PBSTileInfo FollowTrainReservation(const Train *v, Vehicle **train_on_res)
+PBSTileInfo FollowTrainReservation(const Train *v, TileIndex tile, Trackdir trackdir, Vehicle **train_on_res)
 {
 	assert(v->type == VEH_TRAIN);
+	
+	if (tile == INVALID_TILE || trackdir == INVALID_TRACKDIR) {
+		tile = v->tile;
+		trackdir = v->GetVehicleTrackdir();
+	}
 
-	TileIndex tile = v->tile;
-	Trackdir  trackdir = v->GetVehicleTrackdir();
 
 	if (IsRailDepotTile(tile) && !GetDepotReservationTrackBits(tile)) return PBSTileInfo(tile, trackdir, false);
 

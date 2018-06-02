@@ -126,6 +126,12 @@ private:
 				if (ftoti.second_best != NULL) {
 					return false;
 				}
+				// look behind station too
+				Vehicle *other_train = NULL;
+				FollowTrainReservation(t, tile, td, &other_train);
+				if (other_train != NULL) {
+					return false;
+				}
 			}
 		} else if (GetReservedTrackbits(tile) != TRACK_BIT_NONE) {
 			if (!TryReserveRailTrack(tile, TrackdirToTrack(td))) {
