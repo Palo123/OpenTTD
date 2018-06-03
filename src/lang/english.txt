@@ -4042,7 +4042,7 @@ STR_ORDER_NO_UNLOAD_FULL_LOAD                                   :(No unloading a
 STR_ORDER_NO_UNLOAD_FULL_LOAD_ANY                               :(No unloading and wait for any full load)
 STR_ORDER_NO_UNLOAD_NO_LOAD                                     :(No unloading and no loading)
 
-STR_ORDER_DECOUPLE                                              :(Decouple)
+STR_ORDER_DECOUPLE                                              :(Decouple and keep {COMMA} units)
 
 STR_ORDER_AUTO_REFIT                                            :(Refit to {STRING})
 STR_ORDER_FULL_LOAD_REFIT                                       :(Full load with refit to {STRING})

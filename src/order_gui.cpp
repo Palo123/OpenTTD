@@ -280,14 +280,16 @@ void DrawOrderString(const Vehicle *v, const Order *order, int order_index, int 
 				}
 			} else {
 				SetDParam(3, (order->GetNonStopType() & ONSF_NO_STOP_AT_DESTINATION_STATION) ? STR_EMPTY : _station_load_types[order->IsRefit()][unload][load]);
-				//if (order->GetDecouple()) {
-				//	SetDParam(4, STR_ORDER_DECOUPLE);
-				//}
 				if (order->IsRefit()) {
 					SetDParam(4, order->IsAutoRefit() ? STR_ORDER_AUTO_REFIT_ANY : CargoSpec::Get(order->GetRefitCargo())->name);
 				}
+				if (order->GetDecouple()) {
+					SetDParam(5, STR_ORDER_DECOUPLE);
+					uint num_d = order->GetNumDecouple();
+					SetDParam(6, num_d == 0 ? 1 : num_d);
+				}
 				if (v->type == VEH_TRAIN && (order->GetNonStopType() & ONSF_NO_STOP_AT_DESTINATION_STATION) == 0) {
-					SetDParam(5, order->GetStopLocation() + STR_ORDER_STOP_LOCATION_NEAR_END);
+					SetDParam(8, order->GetStopLocation() + STR_ORDER_STOP_LOCATION_NEAR_END);
 				}
 			}
 			break;
