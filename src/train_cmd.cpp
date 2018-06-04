@@ -2985,7 +2985,7 @@ static void TrainEnterStation(Train *v, StationID station)
 	//v->last_station_visited = station;
 	
 	Train *u = nullptr;
-	if (v->current_order.GetDecouple() == 1) {
+	if (v->current_order.GetDecouple() == ODF_DECOUPLE) {
 		u = DecoupleTrain(v);
 		ProcessOrders(u);
 	} else {

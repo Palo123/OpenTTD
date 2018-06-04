@@ -150,6 +150,8 @@ public:
 	inline uint8 GetDecouple() const { return GB(this->decouple_flags, 0, 1); }
 	/** How many wagons are we keeping */
 	inline uint8 GetNumDecouple() const { return GB(this->decouple_flags, 1, 7); }
+	/** What kind of train are we looking for */
+	inline OrderCoupleFlags GetCoupleLoad() const { return (OrderCoupleFlags)GB(this->flags, 0, 3); }
 
 	/** Set how the consist must be loaded. */
 	inline void SetLoadType(OrderLoadFlags load_type) { SB(this->flags, 4, 3, load_type); }
@@ -175,6 +177,8 @@ public:
 	inline void SetDecouple(uint8 value) { SB(this->decouple_flags, 0, 1, value); }
 	/** Set how many units to keep */
 	inline void SetNumDecouple(uint8 value) { SB(this->decouple_flags, 1, 7, value); }
+	/** Set for how full train we should look for */
+	inline void SetCoupleLoad(OrderCoupleFlags load_type) { SB(this->flags, 0, 3, load_type); }
 
 	/* As conditional orders write their "skip to" order all over the flags, we cannot check the
 	 * flags to find out if timetabling is enabled. However, as conditional orders are never

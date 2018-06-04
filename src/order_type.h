@@ -69,8 +69,15 @@ enum OrderLoadFlags {
 };
 
 enum OrderDecoupleFlags {
-	ODF_NOTHING = 0,
+	ODF_NOTHING  = 0,
 	ODF_DECOUPLE = 1,
+};
+
+enum OrderCoupleFlags {
+	ODC_ANY      = 0,
+	ODC_IS_EMPTY = 1,
+	ODC_IS_FULL  = 2,
+	ODC_END      = 3,
 };
 
 /**
@@ -157,8 +164,9 @@ enum ModifyOrderFlags {
 	MOF_COND_COMPARATOR, ///< A comparator changes.
 	MOF_COND_VALUE,      ///< The value to set the condition to.
 	MOF_COND_DESTINATION,///< Change the destination of a conditional order.
-	MOF_DECOUPLE        ,///< Change decouple option.
-	MOF_DECOUPLE_VALUE  ,///< Change number of decoupled units.
+	MOF_DECOUPLE,        ///< Change decouple option.
+	MOF_DECOUPLE_VALUE,  ///< Change number of decoupled units.
+	MOF_COUPLE_LOAD,     ///< Change load parameters of desired train.
 	MOF_END
 };
 template <> struct EnumPropsT<ModifyOrderFlags> : MakeEnumPropsT<ModifyOrderFlags, byte, MOF_NON_STOP, MOF_END, MOF_END, 4> {};
