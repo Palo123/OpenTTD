@@ -210,10 +210,20 @@ public:
 	typedef typename Types::NodeList::Titem Node; ///< this will be our node type
 	typedef typename Node::Key Key;               ///< key to hash tables
 
+protected:
+	Order dest_order;
+	
+public:	
 	/** to access inherited path finder */
 	Tpf& Yapf()
 	{
 		return *static_cast<Tpf *>(this);
+	}
+	
+	void SetDestination(const Train *v)
+	{
+		dest_order.AssignOrder(v->current_order);
+		CYapfDestinationRailBase::SetDestination(v);
 	}
 
 	/** Called by YAPF to detect if node ends in the desired destination */
@@ -229,7 +239,13 @@ public:
 		if (!HasReservedTracks(tile, TrackdirBitsToTrackBits(tdb))) return false;
 		Train *t = GetTrainForReservation(tile, TrackdirToTrack(td));
 		if (t->current_order.IsType(OT_WAIT_COUPLE)) {
-			return true;
+			if (dest_order.GetCoupleLoad() == ODC_ANY) return true;
+			if (dest_order.GetCoupleLoad() == ODC_IS_EMPTY) {
+				return t->cargo.StoredCount() == 0;
+			}
+			if (dest_order.GetCoupleLoad() == ODC_IS_FULL) {
+				return t->cargo.StoredCount() == t->cargo_cap;
+			}
 		}
 		return false;
 	}

@@ -3951,6 +3951,11 @@ STR_ORDER_DROP_SERVICE_DEPOT                                    :Service if need
 STR_ORDER_DROP_HALT_DEPOT                                       :Stop
 STR_ORDER_SERVICE_TOOLTIP                                       :{BLACK}Skip this order unless a service is needed
 
+STR_ORDER_TOGGLE_COUPLE_LOAD                                    :{BLACK}Couple empty
+STR_ORDERS_COUPLE_LOAD_ANY                                      :Couple any
+STR_ORDERS_COUPLE_LOAD_EMPTY                                    :Couple empty
+STR_ORDERS_COUPLE_LOAD_FULL                                     :Couple full
+
 STR_ORDER_CONDITIONAL_VARIABLE_TOOLTIP                          :{BLACK}Vehicle data to base jumping on
 
 # Conditional order variables, must follow order of OrderConditionVariable enum

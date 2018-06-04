@@ -120,9 +120,9 @@ static const StringID _order_decouple_drowdown[] = {
 };
 
 static const StringID _order_couple_load_drowdown[] = {
-	STR_ORDERS_DECOUPLE_DROP,
-	STR_ORDERS_DECOUPLE_DROP,
-	STR_ORDERS_DECOUPLE_VALUE,
+	STR_ORDERS_COUPLE_LOAD_ANY,
+	STR_ORDERS_COUPLE_LOAD_EMPTY,
+	STR_ORDERS_COUPLE_LOAD_FULL,
 	INVALID_STRING_ID
 };
 
@@ -826,6 +826,9 @@ private:
 	{
 		VehicleOrderID sel_ord = this->OrderGetSel();
 		const Order *order = this->vehicle->GetOrder(sel_ord);
+		if (load_type < 0) {
+			load_type = order->GetCoupleLoad() == ODC_IS_EMPTY ? ODC_ANY : ODC_IS_EMPTY;
+		}
 		DoCommandP(this->vehicle->tile, this->vehicle->index + (sel_ord << 20), MOF_COUPLE_LOAD | (load_type << 4), CMD_MODIFY_ORDER | CMD_MSG(STR_ERROR_CAN_T_MODIFY_THIS_ORDER));
 	}
 
@@ -1136,7 +1139,9 @@ public:
 				case OT_GOTO_COUPLE: {
 					assert(this->vehicle->type == VEH_TRAIN);
 					train_row_sel->SetDisplayedPlane(DP_GROUNDVEHICLE_ROW_COUPLE);
-					left_sel->SetDisplayedPlane(DP_LEFT_COUPLE_LOAD);
+					//left_sel->SetDisplayedPlane(DP_LEFT_COUPLE_LOAD);
+					this->RaiseWidget(WID_O_COUPLE_LOAD);
+					this->SetWidgetLoweredState(WID_O_COUPLE_LOAD, order->GetCoupleLoad() == ODC_IS_EMPTY);
 					this->DisableWidget(WID_O_COND_COMPARATOR);
 					this->DisableWidget(WID_O_COND_VALUE);
 					this->DisableWidget(WID_O_DECOUPLE);
@@ -1710,8 +1715,8 @@ static const NWidgetPart _nested_orders_train_widgets[] = {
 															SetDataTip(STR_BLACK_COMMA, STR_ORDER_CONDITIONAL_VALUE_TOOLTIP), SetResize(1, 0),
 			EndContainer(),
 			NWidget(NWID_HORIZONTAL, NC_EQUALSIZE),
-				NWidget(WWT_DROPDOWN, COLOUR_GREY, WID_O_COUPLE_LOAD), SetMinimalSize(124, 12), SetFill(1, 0),
-															SetDataTip(STR_ORDER_REFIT, STR_ORDER_CONDITIONAL_VARIABLE_TOOLTIP), SetResize(1, 0),
+				NWidget(NWID_BUTTON_DROPDOWN, COLOUR_GREY, WID_O_COUPLE_LOAD), SetMinimalSize(124, 12), SetFill(1, 0),
+															SetDataTip(STR_ORDER_TOGGLE_COUPLE_LOAD, STR_ORDER_CONDITIONAL_VARIABLE_TOOLTIP), SetResize(1, 0),
 				NWidget(WWT_DROPDOWN, COLOUR_GREY, WID_O_COND_COMPARATOR), SetMinimalSize(124, 12), SetFill(1, 0),
 															SetDataTip(STR_ORDER_REFIT, STR_ORDER_CONDITIONAL_COMPARATOR_TOOLTIP), SetResize(1, 0),
 				NWidget(WWT_PUSHTXTBTN, COLOUR_GREY, WID_O_COND_VALUE), SetMinimalSize(124, 12), SetFill(1, 0),

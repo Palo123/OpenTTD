@@ -511,7 +511,7 @@ public:
 		PBSTileInfo origin = FollowTrainReservation(v);
 		/* Set origin and destination. */
 		Yapf().SetOrigin(origin.tile, origin.trackdir);
-		Yapf().SetDestination(v, override_railtype);
+		Yapf().SetDestination(v/*, override_railtype*/);
 
 		bool path_found = Yapf().FindPath(v);
 		if (!path_found) return false;
