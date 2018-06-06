@@ -822,7 +822,7 @@ private:
 		DoCommandP(this->vehicle->tile, this->vehicle->index + (this->OrderGetSel() << 20), order.Pack(), CMD_INSERT_ORDER | CMD_MSG(STR_ERROR_CAN_T_INSERT_NEW_ORDER));
 	}
 	
-	void OrderClick_Couple_load(int load_type)
+	void OrderClick_CoupleLoad(int load_type)
 	{
 		VehicleOrderID sel_ord = this->OrderGetSel();
 		const Order *order = this->vehicle->GetOrder(sel_ord);
@@ -830,6 +830,17 @@ private:
 			load_type = order->GetCoupleLoad() == ODC_IS_EMPTY ? ODC_ANY : ODC_IS_EMPTY;
 		}
 		DoCommandP(this->vehicle->tile, this->vehicle->index + (sel_ord << 20), MOF_COUPLE_LOAD | (load_type << 4), CMD_MODIFY_ORDER | CMD_MSG(STR_ERROR_CAN_T_MODIFY_THIS_ORDER));
+	}
+	
+	void OrderClick_CoupleCargo()
+	{
+		VehicleOrderID sel_ord = this->OrderGetSel();
+		const Order *order = this->vehicle->GetOrder(sel_ord);
+		if (order->HasCoupleCargoType()) {
+			DoCommandP(this->vehicle->tile, this->vehicle->index + (sel_ord << 20), MOF_COUPLE_CARGO | (CT_COUPLE_ANY_CARGO << 4), CMD_MODIFY_ORDER | CMD_MSG(STR_ERROR_CAN_T_MODIFY_THIS_ORDER));
+		} else {
+			ShowVehicleCargoTypesWindow(this->vehicle, this->OrderGetSel(), this);
+		}
 	}
 
 	/** Cache auto-refittability of the vehicle chain. */
@@ -1140,9 +1151,10 @@ public:
 					assert(this->vehicle->type == VEH_TRAIN);
 					train_row_sel->SetDisplayedPlane(DP_GROUNDVEHICLE_ROW_COUPLE);
 					//left_sel->SetDisplayedPlane(DP_LEFT_COUPLE_LOAD);
-					this->RaiseWidget(WID_O_COUPLE_LOAD);
+					//this->RaiseWidget(WID_O_COUPLE_LOAD);
 					this->SetWidgetLoweredState(WID_O_COUPLE_LOAD, order->GetCoupleLoad() == ODC_IS_EMPTY);
-					this->DisableWidget(WID_O_COND_COMPARATOR);
+					this->SetWidgetLoweredState(WID_O_COUPLE_CARGO, order->HasCoupleCargoType());
+					//this->DisableWidget(WID_O_COND_COMPARATOR);
 					this->DisableWidget(WID_O_COND_VALUE);
 					this->DisableWidget(WID_O_DECOUPLE);
 					break;
@@ -1424,6 +1436,7 @@ public:
 			case WID_O_SHARED_ORDER_LIST:
 				ShowVehicleListWindow(this->vehicle);
 				break;
+				
 			case WID_O_DECOUPLE:
 				if (this->GetWidget<NWidgetLeaf>(widget)->ButtonHit(pt)) {
 					OrderClick_Decouple(-1);
@@ -1431,12 +1444,20 @@ public:
 					ShowDropDownMenu(this, _order_decouple_drowdown, 0, WID_O_DECOUPLE, 0, 0);
 				}
 				break;
+				
 			case WID_O_COUPLE_LOAD:
 				if (this->GetWidget<NWidgetLeaf>(widget)->ButtonHit(pt)) {
-					OrderClick_Couple_load(-1);
+					OrderClick_CoupleLoad(-1);
 				} else {
 					ShowDropDownMenu(this, _order_couple_load_drowdown, 0, WID_O_COUPLE_LOAD, 0, 0);
 				}
+				break;
+				
+			case WID_O_COUPLE_CARGO:
+				OrderClick_CoupleCargo();
+				break;
+			case WID_O_CARGOLIST:
+			
 				break;
 		}
 	}
@@ -1519,7 +1540,7 @@ public:
 				}
 				break;
 			case WID_O_COUPLE_LOAD:
-				OrderClick_Couple_load(index);
+				OrderClick_CoupleLoad(index);
 				break;
 		}
 	}
@@ -1717,7 +1738,7 @@ static const NWidgetPart _nested_orders_train_widgets[] = {
 			NWidget(NWID_HORIZONTAL, NC_EQUALSIZE),
 				NWidget(NWID_BUTTON_DROPDOWN, COLOUR_GREY, WID_O_COUPLE_LOAD), SetMinimalSize(124, 12), SetFill(1, 0),
 															SetDataTip(STR_ORDER_TOGGLE_COUPLE_LOAD, STR_ORDER_CONDITIONAL_VARIABLE_TOOLTIP), SetResize(1, 0),
-				NWidget(WWT_DROPDOWN, COLOUR_GREY, WID_O_COND_COMPARATOR), SetMinimalSize(124, 12), SetFill(1, 0),
+				NWidget(WWT_TEXTBTN, COLOUR_GREY, WID_O_COUPLE_CARGO), SetMinimalSize(124, 12), SetFill(1, 0),
 															SetDataTip(STR_ORDER_REFIT, STR_ORDER_CONDITIONAL_COMPARATOR_TOOLTIP), SetResize(1, 0),
 				NWidget(WWT_PUSHTXTBTN, COLOUR_GREY, WID_O_COND_VALUE), SetMinimalSize(124, 12), SetFill(1, 0),
 															SetDataTip(STR_ORDER_REFIT, STR_ORDER_CONDITIONAL_VALUE_TOOLTIP), SetResize(1, 0),

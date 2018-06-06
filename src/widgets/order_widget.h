@@ -39,6 +39,8 @@ enum OrderWidgets {
 	WID_O_SHARED_ORDER_LIST,         ///< Open list of shared vehicles.
 	WID_O_DECOUPLE,                  ///< Decouple at station.
 	WID_O_COUPLE_LOAD,               ///< Select couple load.
+	WID_O_COUPLE_CARGO,              ///< Select cargotype for coupling
+	WID_O_CARGOLIST,                 ///< List of cargotypes for couple cargo
 };
 
 #endif /* WIDGETS_ORDER_WIDGET_H */

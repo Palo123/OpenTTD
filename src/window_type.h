@@ -197,6 +197,8 @@ enum WindowClass {
 	 *   - #VehicleID = #VehicleRefitWidgets
 	 */
 	WC_VEHICLE_REFIT,
+	
+	WC_VEHICLE_CARGOTYPES,
 
 	/**
 	 * Vehicle orders; %Window numbers:

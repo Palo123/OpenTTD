@@ -309,6 +309,28 @@ static void DrawVehicleProfitButton(Date age, Money display_profit_last_year, ui
 	DrawSprite(spr, PAL_NONE, x, y);
 }
 
+struct CargoTypesWindow : public Window {
+	CargoTypesWindow(WindowDesc *desc, const Vehicle *v, VehicleOrderID order) : Window(desc)
+	{
+		this->CreateNestedTree();
+
+		/*this->vscroll = this->GetScrollbar(WID_VR_SCROLLBAR);
+		this->hscroll = (v->IsGroundVehicle() ? this->GetScrollbar(WID_VR_HSCROLLBAR) : NULL);
+		this->GetWidget<NWidgetCore>(WID_VR_SELECT_HEADER)->tool_tip = STR_REFIT_TRAIN_LIST_TOOLTIP + v->type;
+		this->GetWidget<NWidgetCore>(WID_VR_MATRIX)->tool_tip        = STR_REFIT_TRAIN_LIST_TOOLTIP + v->type;
+		NWidgetCore *nwi = this->GetWidget<NWidgetCore>(WID_VR_REFIT);
+		nwi->widget_data = STR_REFIT_TRAIN_REFIT_BUTTON + v->type;
+		nwi->tool_tip    = STR_REFIT_TRAIN_REFIT_TOOLTIP + v->type;
+		this->GetWidget<NWidgetStacked>(WID_VR_SHOW_HSCROLLBAR)->SetDisplayedPlane(v->IsGroundVehicle() ? 0 : SZSP_HORIZONTAL);
+		this->GetWidget<NWidgetCore>(WID_VR_VEHICLE_PANEL_DISPLAY)->tool_tip = (v->type == VEH_TRAIN) ? STR_REFIT_SELECT_VEHICLES_TOOLTIP : STR_NULL;*/
+
+		this->FinishInitNested(v->index);
+		this->owner = v->owner;		
+	}
+};
+
+
+
 /** Maximum number of refit cycles we try, to prevent infinite loops. And we store only a byte anyway */
 static const uint MAX_REFIT_CYCLE = 256;
 
@@ -1116,6 +1138,38 @@ static WindowDesc _vehicle_refit_desc(
 	WDF_CONSTRUCTION,
 	_nested_vehicle_refit_widgets, lengthof(_nested_vehicle_refit_widgets)
 );
+
+static const NWidgetPart _nested_vehicle_cargotype_widgets[] = {
+	NWidget(NWID_HORIZONTAL),
+		NWidget(WWT_CLOSEBOX, COLOUR_GREY),
+		NWidget(WWT_CAPTION, COLOUR_GREY, WID_VR_CAPTION), SetDataTip(STR_REFIT_CAPTION, STR_TOOLTIP_WINDOW_TITLE_DRAG_THIS),
+		NWidget(WWT_DEFSIZEBOX, COLOUR_GREY),
+	EndContainer(),
+	/* Matrix + scrollbar. */
+	NWidget(NWID_HORIZONTAL),
+		NWidget(WWT_MATRIX, COLOUR_GREY, WID_VR_MATRIX), SetMinimalSize(228, 112), SetResize(1, 14), SetFill(1, 1), SetMatrixDataTip(1, 0, STR_NULL), SetScrollbar(WID_VR_SCROLLBAR),
+		NWidget(NWID_VSCROLLBAR, COLOUR_GREY, WID_VR_SCROLLBAR),
+	EndContainer(),
+	NWidget(WWT_PANEL, COLOUR_GREY, WID_VR_INFO), SetMinimalTextLines(2, WD_FRAMERECT_TOP + WD_FRAMERECT_BOTTOM), SetResize(1, 0), EndContainer(),
+	NWidget(NWID_HORIZONTAL),
+		NWidget(WWT_PUSHTXTBTN, COLOUR_GREY, WID_VR_REFIT), SetFill(1, 0), SetResize(1, 0),
+		NWidget(WWT_RESIZEBOX, COLOUR_GREY),
+	EndContainer(),
+};
+
+static WindowDesc _vehicle_cargotype_desc(
+	WDP_AUTO, "view_vehicle_cargotype", 240, 174,
+	WC_VEHICLE_CARGOTYPES, WC_VEHICLE_VIEW,
+	WDF_CONSTRUCTION,
+	_nested_vehicle_cargotype_widgets, lengthof(_nested_vehicle_cargotype_widgets)
+);
+
+void ShowVehicleCargoTypesWindow(const Vehicle *v, VehicleOrderID order, Window *parent)
+{
+	DeleteWindowById(WC_VEHICLE_CARGOTYPES, v->index);
+	 CargoTypesWindow *w = new  CargoTypesWindow(&_vehicle_cargotype_desc, v, order);
+	w->parent = parent;
+}
 
 /**
  * Show the refit window for a vehicle

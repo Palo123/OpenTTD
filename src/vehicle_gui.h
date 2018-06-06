@@ -18,6 +18,7 @@
 #include "company_type.h"
 
 void ShowVehicleRefitWindow(const Vehicle *v, VehicleOrderID order, Window *parent, bool auto_refit = false);
+void ShowVehicleCargoTypesWindow(const Vehicle *v, VehicleOrderID order, Window *parent);
 
 /** The tabs in the train details window */
 enum TrainDetailsWindowTabs {

@@ -125,6 +125,15 @@ public:
 	inline CargoID GetRefitCargo() const { return this->refit_cargo; }
 
 	void SetRefit(CargoID cargo);
+	
+	inline bool HasCoupleCargoType() const { return this->refit_cargo < NUM_CARGO; }
+	
+	/**
+	 * @pre IsType(OT_GOTO_COUPLE)
+	 */
+	inline CargoID GetCoupleCargoType() const { return this->refit_cargo; }
+	
+	void SetCoupleCargoType(CargoID cargo) { this->refit_cargo = cargo; }
 
 	/** How must the consist be loaded? */
 	inline OrderLoadFlags GetLoadType() const { return (OrderLoadFlags)GB(this->flags, 4, 3); }

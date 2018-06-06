@@ -231,6 +231,26 @@ public:
 	{
 		return PfDetectDestination(n.GetLastTile(), n.GetLastTrackdir());
 	}
+	
+	bool CheckOrderLoad(Train *t)
+	{
+		switch (dest_order.GetCoupleLoad()) {
+			case ODC_ANY: return true;
+			case ODC_IS_EMPTY: return t->cargo.StoredCount() == 0;
+			case ODC_IS_FULL: return t->cargo.StoredCount() == t->cargo_cap;
+			default: NOT_REACHED();
+		}
+	}
+	
+	bool CheckOrderCargoType(Train *t)
+	{
+		if (!dest_order.HasCoupleCargoType()) return true;
+		CargoID cargo_type = dest_order.GetCoupleCargoType();
+		for (Train *v = t; v != NULL; v = v->Next()) {
+			if (v->cargo_type == cargo_type) return true;
+		}
+		return false;
+	}
 
 	/** Called by YAPF to detect if node ends in the desired destination */
 	inline bool PfDetectDestination(TileIndex tile, Trackdir td)
@@ -239,13 +259,7 @@ public:
 		if (!HasReservedTracks(tile, TrackdirBitsToTrackBits(tdb))) return false;
 		Train *t = GetTrainForReservation(tile, TrackdirToTrack(td));
 		if (t->current_order.IsType(OT_WAIT_COUPLE)) {
-			if (dest_order.GetCoupleLoad() == ODC_ANY) return true;
-			if (dest_order.GetCoupleLoad() == ODC_IS_EMPTY) {
-				return t->cargo.StoredCount() == 0;
-			}
-			if (dest_order.GetCoupleLoad() == ODC_IS_FULL) {
-				return t->cargo.StoredCount() == t->cargo_cap;
-			}
+			if (CheckOrderLoad(t) && CheckOrderCargoType(t)) return true;
 		}
 		return false;
 	}

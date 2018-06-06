@@ -65,6 +65,7 @@ enum CargoType {
 
 	CT_AUTO_REFIT   = 0xFD, ///< Automatically choose cargo type when doing auto refitting.
 	CT_NO_REFIT     = 0xFE, ///< Do not refit cargo of a vehicle (used in vehicle orders and auto-replace/auto-new).
+	CT_COUPLE_ANY_CARGO = 0xFE, ///< Couple train with any cargotypes (used in GOTO_COUPLE order to specify train to couple)
 	CT_INVALID      = 0xFF, ///< Invalid cargo type.
 };
 
