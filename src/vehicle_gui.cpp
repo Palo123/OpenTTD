@@ -309,11 +309,37 @@ static void DrawVehicleProfitButton(Date age, Money display_profit_last_year, ui
 	DrawSprite(spr, PAL_NONE, x, y);
 }
 
+static void DrawVehicleCargoTypeWindow(CargoID sel, uint delta, const Rect &r)
+{
+	uint y = r.top + WD_MATRIX_TOP;
+	uint current = 0;
+
+	int textleft   = r.left  + WD_MATRIX_LEFT;
+	int textright  = r.right - WD_MATRIX_RIGHT;
+	
+	CargoSpec *cs;
+	int i = 0;
+	FOR_ALL_CARGOSPECS(cs) {
+		SetDParam(0, cs->name);
+		DrawString(textleft, textright, y, STR_JUST_STRING, i == sel ? TC_WHITE : TC_BLACK);
+		y += delta;
+		i++;
+	}
+
+}
+
 struct CargoTypesWindow : public Window {
+	CargoID sel;
+	Scrollbar *vscroll;          ///< The main scrollbar.
+	VehicleOrderID order;        ///< If not #INVALID_VEH_ORDER_ID, selection is part of a refit order (rather than execute directly).
+	
 	CargoTypesWindow(WindowDesc *desc, const Vehicle *v, VehicleOrderID order) : Window(desc)
 	{
+		this->sel = CT_COUPLE_ANY_CARGO;
+		this->order = order;
 		this->CreateNestedTree();
 
+		this->vscroll = this->GetScrollbar(WID_VR_SCROLLBAR);
 		/*this->vscroll = this->GetScrollbar(WID_VR_SCROLLBAR);
 		this->hscroll = (v->IsGroundVehicle() ? this->GetScrollbar(WID_VR_HSCROLLBAR) : NULL);
 		this->GetWidget<NWidgetCore>(WID_VR_SELECT_HEADER)->tool_tip = STR_REFIT_TRAIN_LIST_TOOLTIP + v->type;
@@ -325,8 +351,81 @@ struct CargoTypesWindow : public Window {
 		this->GetWidget<NWidgetCore>(WID_VR_VEHICLE_PANEL_DISPLAY)->tool_tip = (v->type == VEH_TRAIN) ? STR_REFIT_SELECT_VEHICLES_TOOLTIP : STR_NULL;*/
 
 		this->FinishInitNested(v->index);
-		this->owner = v->owner;		
+		this->owner = v->owner;	
+
+		this->SetWidgetDisabledState(WID_VR_REFIT, this->sel == CT_COUPLE_ANY_CARGO);		
 	}
+	
+	virtual void OnInit()
+	{
+		this->SetWidgetDisabledState(WID_VR_REFIT, this->sel == CT_COUPLE_ANY_CARGO);
+		this->RefreshScrollbar();
+
+	}
+	
+	virtual void OnClick(Point pt, int widget, int click_count)
+	{
+		switch (widget) {
+			case WID_VR_MATRIX: { // listbox
+				this->SetSelection(this->vscroll->GetScrolledRowFromWidget(pt.y, this, WID_VR_MATRIX));
+				this->SetWidgetDisabledState(WID_VR_REFIT, this->sel == CT_COUPLE_ANY_CARGO);
+				//this->InvalidateData(1);
+
+				if (click_count == 1) break;
+				FALLTHROUGH;
+			}
+
+			case WID_VR_REFIT: // refit button
+				const Vehicle *v = Vehicle::Get(this->window_number);
+				//if (DoCommandP(v->tile, v->index, this->sel | this->order << 16, CMD_ORDER_MODIFY)) delete this;
+				if (DoCommandP(v->tile, v->index + (this->order << 20), MOF_COUPLE_CARGO | (sel << 4), CMD_MODIFY_ORDER | CMD_MSG(STR_ERROR_CAN_T_MODIFY_THIS_ORDER))) delete this;
+				break;
+		}
+	}
+
+	virtual void DrawWidget(const Rect &r, int widget) const
+	{
+		switch (widget) {
+
+			case WID_VR_MATRIX:
+				DrawVehicleCargoTypeWindow(sel, this->resize.step_height, r);
+				break;
+		}
+	}
+	
+	void SetSelection(uint click_row)
+	{
+		this->sel = click_row;
+		DEBUG(misc, 0, "sel %d", click_row);
+	}
+	
+	virtual void OnResize()
+	{
+		this->vscroll->SetCapacityFromWidget(this, WID_VR_MATRIX);
+	}
+	
+	virtual void UpdateWidgetSize(int widget, Dimension *size, const Dimension &padding, Dimension *fill, Dimension *resize)
+	{
+		switch (widget) {
+			case WID_VR_MATRIX:
+				resize->height = WD_MATRIX_TOP + FONT_HEIGHT_NORMAL + WD_MATRIX_BOTTOM;
+				size->height = resize->height * 8;
+				break;
+		}
+	}
+	
+	void RefreshScrollbar()
+	{
+		uint row = 0;
+
+		CargoSpec *cs;
+		FOR_ALL_CARGOSPECS(cs) {
+			row++;
+		}
+
+		this->vscroll->SetCount(row);
+	}
+	
 };
 
 
@@ -1150,7 +1249,6 @@ static const NWidgetPart _nested_vehicle_cargotype_widgets[] = {
 		NWidget(WWT_MATRIX, COLOUR_GREY, WID_VR_MATRIX), SetMinimalSize(228, 112), SetResize(1, 14), SetFill(1, 1), SetMatrixDataTip(1, 0, STR_NULL), SetScrollbar(WID_VR_SCROLLBAR),
 		NWidget(NWID_VSCROLLBAR, COLOUR_GREY, WID_VR_SCROLLBAR),
 	EndContainer(),
-	NWidget(WWT_PANEL, COLOUR_GREY, WID_VR_INFO), SetMinimalTextLines(2, WD_FRAMERECT_TOP + WD_FRAMERECT_BOTTOM), SetResize(1, 0), EndContainer(),
 	NWidget(NWID_HORIZONTAL),
 		NWidget(WWT_PUSHTXTBTN, COLOUR_GREY, WID_VR_REFIT), SetFill(1, 0), SetResize(1, 0),
 		NWidget(WWT_RESIZEBOX, COLOUR_GREY),
