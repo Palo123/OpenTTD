@@ -372,6 +372,11 @@ void DrawOrderString(const Vehicle *v, const Order *order, int order_index, int 
 			
 		case OT_GOTO_COUPLE:
 			SetDParam(0, STR_ORDER_GO_TO_COUPLE);
+			SetDParam(1, STR_ORDER_COUPLE_ANY + order->GetCoupleLoad());
+			if (order->HasCoupleCargoType()) {
+				SetDParam(5, STR_ORDER_COUPLE_CARGO);
+				SetDParam(6, CargoSpec::Get(order->GetCoupleCargoType())->name);
+			}
 			break;
 		
 		case OT_WAIT_COUPLE:

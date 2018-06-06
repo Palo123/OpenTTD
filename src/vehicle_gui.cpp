@@ -345,15 +345,9 @@ struct CargoTypesWindow : public Window {
 		this->CreateNestedTree();
 
 		this->vscroll = this->GetScrollbar(WID_VR_SCROLLBAR);
-		/*this->vscroll = this->GetScrollbar(WID_VR_SCROLLBAR);
-		this->hscroll = (v->IsGroundVehicle() ? this->GetScrollbar(WID_VR_HSCROLLBAR) : NULL);
-		this->GetWidget<NWidgetCore>(WID_VR_SELECT_HEADER)->tool_tip = STR_REFIT_TRAIN_LIST_TOOLTIP + v->type;
-		this->GetWidget<NWidgetCore>(WID_VR_MATRIX)->tool_tip        = STR_REFIT_TRAIN_LIST_TOOLTIP + v->type;*/
 		NWidgetCore *nwi = this->GetWidget<NWidgetCore>(WID_VR_REFIT);
 		nwi->widget_data = STR_REFIT_TRAIN_REFIT_BUTTON + v->type;
 		nwi->tool_tip    = STR_REFIT_TRAIN_REFIT_TOOLTIP + v->type;
-		/*this->GetWidget<NWidgetStacked>(WID_VR_SHOW_HSCROLLBAR)->SetDisplayedPlane(v->IsGroundVehicle() ? 0 : SZSP_HORIZONTAL);
-		this->GetWidget<NWidgetCore>(WID_VR_VEHICLE_PANEL_DISPLAY)->tool_tip = (v->type == VEH_TRAIN) ? STR_REFIT_SELECT_VEHICLES_TOOLTIP : STR_NULL;*/
 
 		this->FinishInitNested(v->index);
 		this->owner = v->owner;	
@@ -383,7 +377,6 @@ struct CargoTypesWindow : public Window {
 
 			case WID_VR_REFIT: // refit button
 				const Vehicle *v = Vehicle::Get(this->window_number);
-				//if (DoCommandP(v->tile, v->index, this->sel | this->order << 16, CMD_ORDER_MODIFY)) delete this;
 				if (DoCommandP(v->tile, v->index + (this->order << 20), MOF_COUPLE_CARGO | (sel << 4), CMD_MODIFY_ORDER | CMD_MSG(STR_ERROR_CAN_T_MODIFY_THIS_ORDER))) delete this;
 				break;
 		}
@@ -437,6 +430,12 @@ struct CargoTypesWindow : public Window {
 	{
 		this->DrawWidgets();
 	}
+	
+	virtual void SetStringParameters(int widget) const
+	{
+		if (widget == WID_VR_CAPTION) SetDParam(0, Vehicle::Get(this->window_number)->index);
+	}
+
 	
 };
 
