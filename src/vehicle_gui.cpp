@@ -309,7 +309,7 @@ static void DrawVehicleProfitButton(Date age, Money display_profit_last_year, ui
 	DrawSprite(spr, PAL_NONE, x, y);
 }
 
-static void DrawVehicleCargoTypeWindow(CargoID sel, uint delta, const Rect &r)
+static void DrawVehicleCargoTypeWindow(CargoID sel, uint pos, uint rows, uint delta, const Rect &r)
 {
 	uint y = r.top + WD_MATRIX_TOP;
 	uint current = 0;
@@ -318,8 +318,13 @@ static void DrawVehicleCargoTypeWindow(CargoID sel, uint delta, const Rect &r)
 	int textright  = r.right - WD_MATRIX_RIGHT;
 	
 	CargoSpec *cs;
-	int i = 0;
+	uint i = 0;
 	FOR_ALL_CARGOSPECS(cs) {
+		if (i < pos) {
+			i++;
+			continue;
+		}
+		if (i >= pos + rows) break;
 		SetDParam(0, cs->name);
 		DrawString(textleft, textright, y, STR_JUST_STRING, i == sel ? TC_WHITE : TC_BLACK);
 		y += delta;
@@ -389,7 +394,7 @@ struct CargoTypesWindow : public Window {
 		switch (widget) {
 
 			case WID_VR_MATRIX:
-				DrawVehicleCargoTypeWindow(sel, this->resize.step_height, r);
+				DrawVehicleCargoTypeWindow(sel, this->vscroll->GetPosition(), this->vscroll->GetCapacity(), this->resize.step_height, r);
 				break;
 		}
 	}
