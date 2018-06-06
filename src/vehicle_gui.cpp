@@ -343,11 +343,11 @@ struct CargoTypesWindow : public Window {
 		/*this->vscroll = this->GetScrollbar(WID_VR_SCROLLBAR);
 		this->hscroll = (v->IsGroundVehicle() ? this->GetScrollbar(WID_VR_HSCROLLBAR) : NULL);
 		this->GetWidget<NWidgetCore>(WID_VR_SELECT_HEADER)->tool_tip = STR_REFIT_TRAIN_LIST_TOOLTIP + v->type;
-		this->GetWidget<NWidgetCore>(WID_VR_MATRIX)->tool_tip        = STR_REFIT_TRAIN_LIST_TOOLTIP + v->type;
+		this->GetWidget<NWidgetCore>(WID_VR_MATRIX)->tool_tip        = STR_REFIT_TRAIN_LIST_TOOLTIP + v->type;*/
 		NWidgetCore *nwi = this->GetWidget<NWidgetCore>(WID_VR_REFIT);
 		nwi->widget_data = STR_REFIT_TRAIN_REFIT_BUTTON + v->type;
 		nwi->tool_tip    = STR_REFIT_TRAIN_REFIT_TOOLTIP + v->type;
-		this->GetWidget<NWidgetStacked>(WID_VR_SHOW_HSCROLLBAR)->SetDisplayedPlane(v->IsGroundVehicle() ? 0 : SZSP_HORIZONTAL);
+		/*this->GetWidget<NWidgetStacked>(WID_VR_SHOW_HSCROLLBAR)->SetDisplayedPlane(v->IsGroundVehicle() ? 0 : SZSP_HORIZONTAL);
 		this->GetWidget<NWidgetCore>(WID_VR_VEHICLE_PANEL_DISPLAY)->tool_tip = (v->type == VEH_TRAIN) ? STR_REFIT_SELECT_VEHICLES_TOOLTIP : STR_NULL;*/
 
 		this->FinishInitNested(v->index);
@@ -369,7 +369,8 @@ struct CargoTypesWindow : public Window {
 			case WID_VR_MATRIX: { // listbox
 				this->SetSelection(this->vscroll->GetScrolledRowFromWidget(pt.y, this, WID_VR_MATRIX));
 				this->SetWidgetDisabledState(WID_VR_REFIT, this->sel == CT_COUPLE_ANY_CARGO);
-				//this->InvalidateData(1);
+				this->RefreshScrollbar();
+				this->InvalidateData();
 
 				if (click_count == 1) break;
 				FALLTHROUGH;
@@ -424,6 +425,12 @@ struct CargoTypesWindow : public Window {
 		}
 
 		this->vscroll->SetCount(row);
+		//if (sel < row) this->vscroll->ScrollTowards(sel);
+	}
+	
+	virtual void OnPaint()
+	{
+		this->DrawWidgets();
 	}
 	
 };
