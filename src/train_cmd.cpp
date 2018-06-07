@@ -3926,6 +3926,12 @@ static void Couple(Train *v, Train *u, bool train_u_reversed)
 	u->unitnumber = 0;
 	GroupStatistics::CountVehicle(u, -1);
 	
+	v->profit_this_year += u->profit_this_year;
+	v->profit_last_year += u->profit_last_year;
+	
+	u->profit_last_year = 0;
+	u->profit_this_year = 0;
+	
 	if (train_u_reversed) {
 		/*u->ClearFrontWagon();
 		AdvanceWagonsBeforeReverse(u);

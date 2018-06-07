@@ -343,20 +343,20 @@ struct CargoTypesWindow : public Window {
 		this->order = order;
 		this->CreateNestedTree();
 
-		this->vscroll = this->GetScrollbar(WID_VR_SCROLLBAR);
-		NWidgetCore *nwi = this->GetWidget<NWidgetCore>(WID_VR_REFIT);
+		this->vscroll = this->GetScrollbar(WID_VCT_SCROLLBAR);
+		NWidgetCore *nwi = this->GetWidget<NWidgetCore>(WID_VCT_SET);
 		nwi->widget_data = STR_REFIT_TRAIN_REFIT_BUTTON + v->type;
 		nwi->tool_tip    = STR_REFIT_TRAIN_REFIT_TOOLTIP + v->type;
 
 		this->FinishInitNested(v->index);
 		this->owner = v->owner;	
 
-		this->SetWidgetDisabledState(WID_VR_REFIT, this->sel == CT_COUPLE_ANY_CARGO);		
+		this->SetWidgetDisabledState(WID_VCT_SET, this->sel == CT_COUPLE_ANY_CARGO);		
 	}
 	
 	virtual void OnInit()
 	{
-		this->SetWidgetDisabledState(WID_VR_REFIT, this->sel == CT_COUPLE_ANY_CARGO);
+		this->SetWidgetDisabledState(WID_VCT_SET, this->sel == CT_COUPLE_ANY_CARGO);
 		this->RefreshScrollbar();
 
 	}
@@ -364,9 +364,9 @@ struct CargoTypesWindow : public Window {
 	virtual void OnClick(Point pt, int widget, int click_count)
 	{
 		switch (widget) {
-			case WID_VR_MATRIX: { // listbox
-				this->SetSelection(this->vscroll->GetScrolledRowFromWidget(pt.y, this, WID_VR_MATRIX));
-				this->SetWidgetDisabledState(WID_VR_REFIT, this->sel == CT_COUPLE_ANY_CARGO);
+			case WID_VCT_MATRIX: { // listbox
+				this->SetSelection(this->vscroll->GetScrolledRowFromWidget(pt.y, this, WID_VCT_MATRIX));
+				this->SetWidgetDisabledState(WID_VCT_SET, this->sel == CT_COUPLE_ANY_CARGO);
 				this->RefreshScrollbar();
 				this->InvalidateData();
 
@@ -374,7 +374,7 @@ struct CargoTypesWindow : public Window {
 				FALLTHROUGH;
 			}
 
-			case WID_VR_REFIT: // refit button
+			case WID_VCT_SET: // set button
 				const Vehicle *v = Vehicle::Get(this->window_number);
 				if (DoCommandP(v->tile, v->index + (this->order << 20), MOF_COUPLE_CARGO | (sel << 4), CMD_MODIFY_ORDER | CMD_MSG(STR_ERROR_CAN_T_MODIFY_THIS_ORDER))) delete this;
 				break;
@@ -385,7 +385,7 @@ struct CargoTypesWindow : public Window {
 	{
 		switch (widget) {
 
-			case WID_VR_MATRIX:
+			case WID_VCT_MATRIX:
 				DrawVehicleCargoTypeWindow(sel, this->vscroll->GetPosition(), this->vscroll->GetCapacity(), this->resize.step_height, r);
 				break;
 		}
@@ -408,13 +408,13 @@ struct CargoTypesWindow : public Window {
 	
 	virtual void OnResize()
 	{
-		this->vscroll->SetCapacityFromWidget(this, WID_VR_MATRIX);
+		this->vscroll->SetCapacityFromWidget(this, WID_VCT_MATRIX);
 	}
 	
 	virtual void UpdateWidgetSize(int widget, Dimension *size, const Dimension &padding, Dimension *fill, Dimension *resize)
 	{
 		switch (widget) {
-			case WID_VR_MATRIX:
+			case WID_VCT_MATRIX:
 				resize->height = WD_MATRIX_TOP + FONT_HEIGHT_NORMAL + WD_MATRIX_BOTTOM;
 				size->height = resize->height * 8;
 				break;
@@ -441,7 +441,7 @@ struct CargoTypesWindow : public Window {
 	
 	virtual void SetStringParameters(int widget) const
 	{
-		if (widget == WID_VR_CAPTION) SetDParam(0, Vehicle::Get(this->window_number)->index);
+		if (widget == WID_VCT_CAPTION) SetDParam(0, Vehicle::Get(this->window_number)->index);
 	}
 
 	
@@ -1260,16 +1260,16 @@ static WindowDesc _vehicle_refit_desc(
 static const NWidgetPart _nested_vehicle_cargotype_widgets[] = {
 	NWidget(NWID_HORIZONTAL),
 		NWidget(WWT_CLOSEBOX, COLOUR_GREY),
-		NWidget(WWT_CAPTION, COLOUR_GREY, WID_VR_CAPTION), SetDataTip(STR_REFIT_CAPTION, STR_TOOLTIP_WINDOW_TITLE_DRAG_THIS),
+		NWidget(WWT_CAPTION, COLOUR_GREY, WID_VCT_CAPTION), SetDataTip(STR_REFIT_CAPTION, STR_TOOLTIP_WINDOW_TITLE_DRAG_THIS),
 		NWidget(WWT_DEFSIZEBOX, COLOUR_GREY),
 	EndContainer(),
 	/* Matrix + scrollbar. */
 	NWidget(NWID_HORIZONTAL),
-		NWidget(WWT_MATRIX, COLOUR_GREY, WID_VR_MATRIX), SetMinimalSize(228, 112), SetResize(1, 14), SetFill(1, 1), SetMatrixDataTip(1, 0, STR_NULL), SetScrollbar(WID_VR_SCROLLBAR),
-		NWidget(NWID_VSCROLLBAR, COLOUR_GREY, WID_VR_SCROLLBAR),
+		NWidget(WWT_MATRIX, COLOUR_GREY, WID_VCT_MATRIX), SetMinimalSize(228, 112), SetResize(1, 14), SetFill(1, 1), SetMatrixDataTip(1, 0, STR_NULL), SetScrollbar(WID_VCT_SCROLLBAR),
+		NWidget(NWID_VSCROLLBAR, COLOUR_GREY, WID_VCT_SCROLLBAR),
 	EndContainer(),
 	NWidget(NWID_HORIZONTAL),
-		NWidget(WWT_PUSHTXTBTN, COLOUR_GREY, WID_VR_REFIT), SetFill(1, 0), SetResize(1, 0),
+		NWidget(WWT_PUSHTXTBTN, COLOUR_GREY, WID_VCT_SET), SetFill(1, 0), SetResize(1, 0),
 		NWidget(WWT_RESIZEBOX, COLOUR_GREY),
 	EndContainer(),
 };
