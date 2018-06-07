@@ -1744,7 +1744,7 @@ static const NWidgetPart _nested_orders_train_widgets[] = {
 				NWidget(NWID_BUTTON_DROPDOWN, COLOUR_GREY, WID_O_COUPLE_LOAD), SetMinimalSize(124, 12), SetFill(1, 0),
 															SetDataTip(STR_ORDER_TOGGLE_COUPLE_LOAD, STR_ORDER_CONDITIONAL_VARIABLE_TOOLTIP), SetResize(1, 0),
 				NWidget(WWT_TEXTBTN, COLOUR_GREY, WID_O_COUPLE_CARGO), SetMinimalSize(124, 12), SetFill(1, 0),
-															SetDataTip(STR_ORDER_REFIT, STR_ORDER_CONDITIONAL_COMPARATOR_TOOLTIP), SetResize(1, 0),
+															SetDataTip(STR_ORDER_CARGO_TYPE_BUTTON, STR_ORDER_CONDITIONAL_COMPARATOR_TOOLTIP), SetResize(1, 0),
 				NWidget(WWT_PUSHTXTBTN, COLOUR_GREY, WID_O_COND_VALUE), SetMinimalSize(124, 12), SetFill(1, 0),
 															SetDataTip(STR_ORDER_REFIT, STR_ORDER_CONDITIONAL_VALUE_TOOLTIP), SetResize(1, 0),
 			EndContainer(),

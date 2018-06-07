@@ -345,7 +345,7 @@ struct CargoTypesWindow : public Window {
 
 		this->vscroll = this->GetScrollbar(WID_VCT_SCROLLBAR);
 		NWidgetCore *nwi = this->GetWidget<NWidgetCore>(WID_VCT_SET);
-		nwi->widget_data = STR_REFIT_TRAIN_REFIT_BUTTON + v->type;
+		nwi->widget_data = STR_TRAIN_CARGOS_CONFIRM + v->type;
 		nwi->tool_tip    = STR_REFIT_TRAIN_REFIT_TOOLTIP + v->type;
 
 		this->FinishInitNested(v->index);
@@ -375,8 +375,10 @@ struct CargoTypesWindow : public Window {
 			}
 
 			case WID_VCT_SET: // set button
-				const Vehicle *v = Vehicle::Get(this->window_number);
-				if (DoCommandP(v->tile, v->index + (this->order << 20), MOF_COUPLE_CARGO | (sel << 4), CMD_MODIFY_ORDER | CMD_MSG(STR_ERROR_CAN_T_MODIFY_THIS_ORDER))) delete this;
+				if (this->sel != CT_COUPLE_ANY_CARGO) {
+					const Vehicle *v = Vehicle::Get(this->window_number);
+					if (DoCommandP(v->tile, v->index + (this->order << 20), MOF_COUPLE_CARGO | (sel << 4), CMD_MODIFY_ORDER | CMD_MSG(STR_ERROR_CAN_T_MODIFY_THIS_ORDER))) delete this;
+				}
 				break;
 		}
 	}
@@ -1260,7 +1262,7 @@ static WindowDesc _vehicle_refit_desc(
 static const NWidgetPart _nested_vehicle_cargotype_widgets[] = {
 	NWidget(NWID_HORIZONTAL),
 		NWidget(WWT_CLOSEBOX, COLOUR_GREY),
-		NWidget(WWT_CAPTION, COLOUR_GREY, WID_VCT_CAPTION), SetDataTip(STR_REFIT_CAPTION, STR_TOOLTIP_WINDOW_TITLE_DRAG_THIS),
+		NWidget(WWT_CAPTION, COLOUR_GREY, WID_VCT_CAPTION), SetDataTip(STR_CARGO_CAPTION, STR_TOOLTIP_WINDOW_TITLE_DRAG_THIS),
 		NWidget(WWT_DEFSIZEBOX, COLOUR_GREY),
 	EndContainer(),
 	/* Matrix + scrollbar. */

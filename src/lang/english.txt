@@ -3880,6 +3880,9 @@ STR_VEHICLE_DETAILS_TRAIN_TOTAL_CARGO_TOOLTIP                   :{BLACK}Show tot
 
 STR_VEHICLE_DETAILS_TRAIN_ARTICULATED_RV_CAPACITY               :{BLACK}Capacity: {LTBLUE}
 
+STR_CARGO_CAPTION                                               :{WHITE}{VEHICLE} (Cargos)
+STR_TRAIN_CARGOS_CONFIRM                                        :{BLACK}Set Cargo
+
 # Vehicle refit
 STR_REFIT_CAPTION                                               :{WHITE}{VEHICLE} (Refit)
 STR_REFIT_TITLE                                                 :{GOLD}Select cargo type to carry:
@@ -4012,6 +4015,8 @@ STR_ORDER_COUPLE_EMPTY                                          :empty
 STR_ORDER_COUPLE_FULL                                           :full
 
 STR_ORDER_COUPLE_CARGO                                          :that can carry {STRING}
+
+STR_ORDER_CARGO_TYPE_BUTTON                                     :{BLACK}Cargo type
 
 STR_ORDERS_VEH_WITH_SHARED_ORDERS_LIST_TOOLTIP                  :{BLACK}Show all vehicles that share this schedule
 
