@@ -1739,7 +1739,7 @@ void BaseVehicleListWindow::DrawVehicleListItems(VehicleID selected_vehicle, int
 				if (v->IsChainInDepot()) {
 					str = STR_BLUE_COMMA;
 				} else {
-					str = (v->age > v->max_age - DAYS_IN_LEAP_YEAR) ? STR_RED_COMMA : STR_BLACK_COMMA;
+					str = ((v->age > v->max_age - DAYS_IN_LEAP_YEAR) && !(v->type == VEH_TRAIN && Train::From(v)->IsFrontWagon())) ? STR_RED_COMMA : STR_BLACK_COMMA;
 				}
 
 				SetDParam(0, v->unitnumber);
@@ -2444,7 +2444,7 @@ struct VehicleDetailsWindow : Window {
 
 				/* Draw running cost */
 				SetDParam(1, v->age / DAYS_IN_LEAP_YEAR);
-				SetDParam(0, (v->age + DAYS_IN_YEAR < v->max_age) ? STR_VEHICLE_INFO_AGE : STR_VEHICLE_INFO_AGE_RED);
+				SetDParam(0, (v->age + DAYS_IN_YEAR < v->max_age || (v->type == VEH_TRAIN && Train::From(v)->IsFrontWagon())) ? STR_VEHICLE_INFO_AGE : STR_VEHICLE_INFO_AGE_RED);
 				SetDParam(2, v->max_age / DAYS_IN_LEAP_YEAR);
 				SetDParam(3, v->GetDisplayRunningCost());
 				DrawString(r.left + WD_FRAMERECT_LEFT, r.right - WD_FRAMERECT_RIGHT, y, STR_VEHICLE_INFO_AGE_RUNNING_COST_YR);

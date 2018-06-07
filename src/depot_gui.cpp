@@ -357,7 +357,7 @@ struct DepotWindow : Window {
 			DrawSprite((v->vehstatus & VS_STOPPED) ? SPR_FLAG_VEH_STOPPED : SPR_FLAG_VEH_RUNNING, PAL_NONE, rtl ? right - this->flag_width : left + WD_FRAMERECT_LEFT, y + diff_y);
 
 			SetDParam(0, v->unitnumber);
-			DrawString(text_left, text_right, y + 2, (uint16)(v->max_age - DAYS_IN_LEAP_YEAR) >= v->age ? STR_BLACK_COMMA : STR_RED_COMMA);
+			DrawString(text_left, text_right, y + 2, ((uint16)(v->max_age - DAYS_IN_LEAP_YEAR) >= v->age) || (v->type == VEH_TRAIN && Train::From(v)->IsFrontWagon()) ? STR_BLACK_COMMA : STR_RED_COMMA);
 		}
 	}
 
