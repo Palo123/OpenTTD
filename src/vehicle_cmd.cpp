@@ -571,7 +571,7 @@ CommandCost CmdStartStopVehicle(TileIndex tile, DoCommandFlag flags, uint32 p1, 
 
 	switch (v->type) {
 		case VEH_TRAIN:
-			if ((v->vehstatus & VS_STOPPED) && Train::From(v)->gcache.cached_power == 0) return_cmd_error(STR_ERROR_TRAIN_START_NO_POWER);
+			if ((v->vehstatus & VS_STOPPED) && Train::From(v)->gcache.cached_power == 0 && !Train::From(v)->IsFrontWagon()) return_cmd_error(STR_ERROR_TRAIN_START_NO_POWER);
 			break;
 
 		case VEH_SHIP:
