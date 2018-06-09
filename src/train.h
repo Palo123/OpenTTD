@@ -44,13 +44,16 @@ enum TrainForceProceeding : byte {
 enum ConsistChangeFlags {
 	CCF_LENGTH     = 0x01,     ///< Allow vehicles to change length.
 	CCF_CAPACITY   = 0x02,     ///< Allow vehicles to change capacity.
+	CCF_CHECK_ONLY = 0x04,     ///< Run this only as a check.
 
 	CCF_TRACK      = 0,                          ///< Valid changes while vehicle is driving, and possibly changing tracks.
 	CCF_LOADUNLOAD = 0,                          ///< Valid changes while vehicle is loading/unloading.
 	CCF_AUTOREFIT  = CCF_CAPACITY,               ///< Valid changes for autorefitting in stations.
+	CCF_ARRANGE_STATION = CCF_CAPACITY,          ///< Valid changes for arranging the consist in a station.
 	CCF_REFIT      = CCF_LENGTH | CCF_CAPACITY,  ///< Valid changes for refitting in a depot.
 	CCF_ARRANGE    = CCF_LENGTH | CCF_CAPACITY,  ///< Valid changes for arranging the consist in a depot.
 	CCF_SAVELOAD   = CCF_LENGTH,                 ///< Valid changes when loading a savegame. (Everything that is not stored in the save.)
+	CCF_ARRANGE_CHECK = CCF_CAPACITY | CCF_CHECK_ONLY, ///< Check for valid changes for arranging the consist in a station.
 };
 DECLARE_ENUM_AS_BIT_SET(ConsistChangeFlags)
 
@@ -128,7 +131,7 @@ struct Train FINAL : public GroundVehicle<Train, VEH_TRAIN> {
 
 	int GetCurveSpeedLimit() const;
 
-	void ConsistChanged(ConsistChangeFlags allowed_changes);
+	bool ConsistChanged(ConsistChangeFlags allowed_changes);
 
 	int UpdateSpeed();
 

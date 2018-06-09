@@ -102,8 +102,9 @@ void CheckTrainsLengths()
  * to/removed from the chain, and when the game is loaded.
  * Note: this needs to be called too for 'wagon chains' (in the depot, without an engine)
  * @param allowed_changes Stuff that is allowed to change.
+ * @return if changes are allowed after CCF_CHECK_ONLY mode
  */
-void Train::ConsistChanged(ConsistChangeFlags allowed_changes)
+bool Train::ConsistChanged(ConsistChangeFlags allowed_changes)
 {
 	uint16 max_speed = UINT16_MAX;
 
@@ -187,13 +188,17 @@ void Train::ConsistChanged(ConsistChangeFlags allowed_changes)
 
 		uint16 new_cap = e_u->DetermineCapacity(u);
 		if (allowed_changes & CCF_CAPACITY) {
-			/* Update vehicle capacity. */
-			if (u->cargo_cap > new_cap) u->cargo.Truncate(new_cap);
-			u->refit_cap = min(new_cap, u->refit_cap);
-			u->cargo_cap = new_cap;
+			if (!(allowed_changes & CCF_CHECK_ONLY)) {
+				/* Update vehicle capacity. */
+				if (u->cargo_cap > new_cap) u->cargo.Truncate(new_cap);
+				u->refit_cap = min(new_cap, u->refit_cap);
+				u->cargo_cap = new_cap;
+			}
 		} else {
 			/* Verify capacity hasn't changed. */
-			if (new_cap != u->cargo_cap) ShowNewGrfVehicleError(u->engine_type, STR_NEWGRF_BROKEN, STR_NEWGRF_BROKEN_CAPACITY, GBUG_VEH_CAPACITY, true);
+			if (allowed_changes & CCF_CHECK_ONLY) {
+				if (new_cap != u->cargo_cap) return false;
+			} else if (new_cap != u->cargo_cap) ShowNewGrfVehicleError(u->engine_type, STR_NEWGRF_BROKEN, STR_NEWGRF_BROKEN_CAPACITY, GBUG_VEH_CAPACITY, true);
 		}
 		u->vcache.cached_cargo_age_period = GetVehicleProperty(u, PROP_TRAIN_CARGO_AGE_PERIOD, e_u->info.cargo_age_period);
 
@@ -214,11 +219,15 @@ void Train::ConsistChanged(ConsistChangeFlags allowed_changes)
 		veh_len = VEHICLE_LENGTH - Clamp(veh_len, 0, VEHICLE_LENGTH - 1);
 
 		if (allowed_changes & CCF_LENGTH) {
-			/* Update vehicle length. */
-			u->gcache.cached_veh_length = veh_len;
+			if (!(allowed_changes & CCF_CHECK_ONLY)) {
+				/* Update vehicle length. */
+				u->gcache.cached_veh_length = veh_len;
+			}
 		} else {
 			/* Verify length hasn't changed. */
-			if (veh_len != u->gcache.cached_veh_length) VehicleLengthChanged(u);
+			if (allowed_changes & CCF_CHECK_ONLY) {
+				if (veh_len != u->gcache.cached_veh_length) return false;
+			} else if (veh_len != u->gcache.cached_veh_length) VehicleLengthChanged(u);
 		}
 
 		this->gcache.cached_total_length += u->gcache.cached_veh_length;
@@ -241,6 +250,7 @@ void Train::ConsistChanged(ConsistChangeFlags allowed_changes)
 		InvalidateWindowData(WC_VEHICLE_ORDERS, this->index, VIWD_CONSIST_CHANGED);
 		InvalidateNewGRFInspectWindow(GSF_TRAINS, this->index);
 	}
+	return true;
 }
 
 /**
@@ -1760,7 +1770,7 @@ static void AdvanceWagonsAfterCouple(Train *v)
 	int diff_y = abs(v->y_pos - v->Next()->y_pos);
 	int real_diff = max(diff_x, diff_y);
 	real_diff = real_diff - difference;
-	
+
 	assert(real_diff >= 0);
 	
 	for (int i = 0; i < real_diff; i++) TrainController(v->Next(), nullptr);
@@ -2080,8 +2090,32 @@ static Train *DecoupleTrain(Train *v)
 	Train *first_param = nullptr;
 	Train *u = GetDecoupleVehicle(v);
 	
+
+	
+	TrainList original_src;
+	TrainList original_dst;
+
+	MakeTrainBackup(original_src, v);
+	//MakeTrainBackup(original_dst, u);
+
 	//ArrangeTrains(Train **dst_head, Train *dst, Train **src_head, Train *src, bool move_chain);	
 	ArrangeTrains(&first_param, nullptr, &v, u, true);
+
+	//CommandCost ret = CheckTrainAttachment(v);
+	CommandCost ret = CheckTrainAttachment(u);
+	u->SetFrontWagon();
+	bool ok = u->ConsistChanged(CCF_ARRANGE_CHECK);
+	ok &= v->ConsistChanged(CCF_ARRANGE_CHECK);
+	
+	if (ret.Failed() || !ok) {
+			/* Restore the train we had. */
+		RestoreTrainBackup(original_src);
+		u->ClearFrontWagon();
+		v->ConsistChanged(CCF_ARRANGE);
+		//RestoreTrainBackup(original_dst);
+		//ArrangeTrains(&v, v->Last(), &u, u, true);
+		return v;
+	}
 	if (u->IsEngine()) {
 		u->SetFrontEngine();
 		u->vehstatus &= ~VS_STOPPED;
@@ -3933,12 +3967,6 @@ static void Couple(Train *v, Train *u, bool train_u_reversed)
 	u->profit_this_year = 0;
 	
 	if (train_u_reversed) {
-		/*u->ClearFrontWagon();
-		AdvanceWagonsBeforeReverse(u);
-		u = ReverseTrainChain(u);
-		ReverseTrainChainDir(u);
-		AdvanceWagonsAfterReverse(u);
-		u->SetFrontWagon();*/
 		ReverseTrainDirection(u);
 	}
 	v->IncrementImplicitOrderIndex();
@@ -3948,6 +3976,8 @@ static void Couple(Train *v, Train *u, bool train_u_reversed)
 	Train *u_head = u;
 	Train *v_last = v->Last();
 	ArrangeTrains(&v, v_last, &u_head, u, true);
+	CommandCost ret = CheckTrainAttachment(v);
+	if (ret.Failed()) assert(false);
 	
 	u->ClearFrontWagon();
 	u->ClearFrontEngine();
@@ -3961,39 +3991,37 @@ static void Couple(Train *v, Train *u, bool train_u_reversed)
 
 static Train *GetCouplePosition(Train *v, bool &reverse)
 {
-	//if (CountVehiclesInChain(v) != 1) return nullptr;
-	
 	Vehicle *other_vehicle = nullptr;
 	FollowTrainReservation(v, v->tile, v->GetVehicleTrackdir(), &other_vehicle);
 	
 	if (other_vehicle == nullptr) return nullptr;
 	if (other_vehicle->First()->index == v->index) return nullptr;
 	if (!other_vehicle->current_order.IsType(OT_WAIT_COUPLE)) return nullptr;
-	Train *u = Train::From(other_vehicle);
+	Train *u = Train::From(other_vehicle)->First();
 	
-	int x_diff = abs(v->x_pos - u->x_pos);
-	int y_diff = abs(v->y_pos - u->y_pos);
+	DirDiff dir_diff = DirDifference(v->direction, u->direction);
+	reverse = dir_diff == DIRDIFF_SAME || dir_diff == DIRDIFF_45RIGHT || dir_diff == DIRDIFF_45LEFT;
+	
+	Train *z;
+	if (reverse) {
+		z = u->Last();
+	} else {
+		z = u;
+	}
+	int x_diff = abs(v->x_pos - z->x_pos);
+	int y_diff = abs(v->y_pos - z->y_pos);
 	
 	int diff = max(x_diff, y_diff);
 	
-	if (diff == ((v->gcache.cached_veh_length + 1) / 2 + (u->gcache.cached_veh_length + 1) / 2)) {
-		DirDiff dir_diff = DirDifference(v->direction, u->direction);
-		reverse = dir_diff == DIRDIFF_SAME || dir_diff == DIRDIFF_45RIGHT || dir_diff == DIRDIFF_45LEFT;
+	/* If we are goint to reverse, we need the longer distance to not crash. 
+	 * Front vehicle always reverse */
+	uint8 v_max_length = max(v->Last()->gcache.cached_veh_length, v->gcache.cached_veh_length);
+	uint8 u_max_length = reverse ? max(u->gcache.cached_veh_length, u->Last()->gcache.cached_veh_length) : u->gcache.cached_veh_length;
+	
+	if (diff == ((v_max_length + 1) / 2 + (u_max_length + 1) / 2)) {
 		return u;
 	}
 	
-	Train *z;
-	for (z = u;z->Next() != nullptr; z = z->Next());
-	
-	x_diff = abs(v->x_pos - z->x_pos);
-	y_diff = abs(v->y_pos - z->y_pos);
-	
-	diff = max(x_diff, y_diff);
-	
-	if (diff == ((v->gcache.cached_veh_length + 1) / 2 + (z->gcache.cached_veh_length + 1) / 2)) {
-		reverse = true;
-		return u;
-	}
 	return nullptr;
 }
 
