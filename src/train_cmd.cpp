@@ -2011,7 +2011,6 @@ bool TrainFitStation(const Train *v)
 	if (!IsRailStationTile(v->Last()->tile)) return false;
 	StationID sid = GetStationIndex(v->tile);
 	const Station *st = Station::Get(sid);
-	//int station_length = st->GetPlatformLength(v->tile) * TILE_SIZE;
 	int station_length = st->GetPlatformLength(v->tile, DirToDiagDir(ReverseDir(v->direction))) * TILE_SIZE;
 	/* vehicle position is in the middle, 
 	 * half vehicle size overlap is fine and solve corner case */
@@ -2023,7 +2022,10 @@ static bool CanDecouple(Train *v)
 	if (!TrainFitStation(v)) return false; 
 	if (CountVehiclesInChain(v) < 2) return false;
 	if (v->GetNextUnit() == nullptr) return false;
-	if (v->Last()->IsRearDualheaded()) return false;
+	for (Train *z = v; z != nullptr; z = z->Next()) {
+		if (z->IsRearDualheaded()) return false;
+	}
+	//if (v->Last()->IsRearDualheaded()) return false;
 	return true;
 }
 
@@ -2036,38 +2038,45 @@ static Train *GetDecoupleVehicle(Train *v)
 	return ret;
 }
 
-static Train *DecoupleTrain(Train *v)
+static bool TryTrainDecouple(Train *v, Train *u)
 {
-	if (!CanDecouple(v)) return v;
-	Train *first_param = nullptr;
-	Train *u = GetDecoupleVehicle(v);
-	
-
-	
 	TrainList original_src;
 	TrainList original_dst;
 
 	MakeTrainBackup(original_src, v);
 	//MakeTrainBackup(original_dst, u);
+	Train *first_param = nullptr;
 
 	//ArrangeTrains(Train **dst_head, Train *dst, Train **src_head, Train *src, bool move_chain);	
 	ArrangeTrains(&first_param, nullptr, &v, u, true);
 
-	//CommandCost ret = CheckTrainAttachment(v);
-	CommandCost ret = CheckTrainAttachment(u);
+	bool ok = true;
+	CommandCost ret = CheckTrainAttachment(v);
+	ok &= !ret.Failed();
+	ret = CheckTrainAttachment(u);
+	ok &= !ret.Failed();
 	u->SetFrontWagon();
-	bool ok = u->ConsistChanged(CCF_ARRANGE_CHECK);
+	ok &= u->ConsistChanged(CCF_ARRANGE_CHECK);
 	ok &= v->ConsistChanged(CCF_ARRANGE_CHECK);
+	u->ClearFrontWagon();
 	
-	if (ret.Failed() || !ok) {
-			/* Restore the train we had. */
-		RestoreTrainBackup(original_src);
-		u->ClearFrontWagon();
+	if (!ok) {
+		/* Restore the train we had. */
+		RestoreTrainBackup(original_src);		
 		v->ConsistChanged(CCF_ARRANGE);
-		//RestoreTrainBackup(original_dst);
-		//ArrangeTrains(&v, v->Last(), &u, u, true);
-		return v;
+		return false;
 	}
+	return true;
+}
+
+static Train *DecoupleTrain(Train *v)
+{
+	if (!CanDecouple(v)) return v;
+	
+	Train *u = GetDecoupleVehicle(v);
+	
+	if (!TryTrainDecouple(v, u)) return v;
+	
 	if (u->IsEngine()) {
 		u->SetFrontEngine();
 		u->vehstatus &= ~VS_STOPPED;
@@ -2079,7 +2088,6 @@ static Train *DecoupleTrain(Train *v)
 	
 	GroupStatistics::CountVehicle(v, 1);
 	GroupStatistics::CountVehicle(u, 1);
-	
 	
 	NormaliseTrainHead(u);
 	NormaliseTrainHead(v);
@@ -3892,8 +3900,49 @@ static bool TrainCheckIfLineEnds(Train *v, bool reverse)
 	return true;
 }
 
+static bool TryTrainCouple(Train *v, Train *u)
+{
+	TrainList original_src;
+	TrainList original_dst;
+
+	MakeTrainBackup(original_src, v);
+	MakeTrainBackup(original_dst, u);
+	
+	Train *u_head = u;
+	Train *v_last = v->Last();
+	//ArrangeTrains(Train **dst_head, Train *dst, Train **src_head, Train *src, bool move_chain);
+	ArrangeTrains(&v, v_last, &u_head, u, true);
+
+	CommandCost ret = CheckTrainAttachment(v);
+	bool ok = v->ConsistChanged(CCF_ARRANGE_CHECK);
+	
+	if (ret.Failed() || !ok) {
+		/* Restore the train we had. */
+		RestoreTrainBackup(original_src);
+		RestoreTrainBackup(original_dst);
+		
+		v->ConsistChanged(CCF_ARRANGE);
+		u->ConsistChanged(CCF_ARRANGE);
+		return false;
+	}
+	return true;
+}
+
 static void Couple(Train *v, Train *u, bool train_u_reversed)
 {
+	if (train_u_reversed) {
+		ReverseTrainDirection(u);
+	}
+	v->IncrementImplicitOrderIndex();
+	ProcessOrders(v);
+	ReverseTrainDirection(v);
+
+	Train *v_last = v->Last();
+	
+	if (!TryTrainCouple(v, u)) {
+		return;
+	}
+	
 	/* Delete orders, group stuff and the unit number as we're not the
 	 * front of any vehicle anymore. */
 	 
@@ -3915,21 +3964,6 @@ static void Couple(Train *v, Train *u, bool train_u_reversed)
 	
 	u->profit_last_year = 0;
 	u->profit_this_year = 0;
-	
-	if (train_u_reversed) {
-		ReverseTrainDirection(u);
-	}
-	v->IncrementImplicitOrderIndex();
-	ProcessOrders(v);
-	ReverseTrainDirection(v);
-	 
-	Train *u_head = u;
-	Train *v_last = v->Last();
-	ArrangeTrains(&v, v_last, &u_head, u, true);
-	CommandCost ret = CheckTrainAttachment(v);
-	if (ret.Failed()) {
-		return;
-	}
 	
 	u->ClearFrontWagon();
 	u->ClearFrontEngine();
