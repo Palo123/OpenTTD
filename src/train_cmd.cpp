@@ -1618,34 +1618,6 @@ void ReverseTrainSwapVeh(Train *v, int l, int r)
 	}
 }
 
-static void ReverseTrainChainDir(Train *v) {
-	for (Train *a = v; a != nullptr; a = a->Next()) {
-		a->direction = ReverseDir(a->direction);
-	}
-}
-
-static Train *ReverseTrainChain(Train *v)
-{
-	Train *new_first = v->Last();
-	Train *tmp = nullptr;
-	Train *tmp2;
-	bool first = true;
-	for (Train *a = v; a != nullptr; a = a->Next()) {
-		
-		if (first) {
-			first = false;
-			tmp2 = tmp;
-			tmp = a;
-			continue;
-		}
-		tmp->SetNext(tmp2);
-		tmp2 = tmp;
-		tmp = a;
-	}
-	tmp->SetNext(tmp2);
-	return new_first;
-}
-
 /**
  * Check if the vehicle is a train
  * @param v vehicle on tile
@@ -1738,30 +1710,6 @@ static inline void MaybeBarCrossingWithSound(TileIndex tile)
 	}
 }
 
-
-static void AdvanceWagonsBeforeReverse(Train *v)
-{
-	int difference = 0;
-	for (Train *a = v->Last(); a->Previous() != nullptr; a = a->Previous()) {
-		if (a->gcache.cached_veh_length & 1) difference--;
-		if (a->Previous()->gcache.cached_veh_length & 1) difference++;
-		if (difference > 0) {
-			for (int i = 0; i < difference; i++) TrainController(a->Previous(), a);
-		}
-	}
-}
-
-static void AdvanceWagonsAfterReverse(Train *v)
-{
-	int difference = 0;
-	for (Train *a = v; a->Next() != nullptr; a = a->Next()) {
-		if (a->gcache.cached_veh_length & 1) difference++;
-		if (a->Next()->gcache.cached_veh_length & 1) difference--;
-		if (difference > 0) {
-			for (int i = 0; i < difference; i++) TrainController(a->Next(), a->Next()->Next());
-		}
-	}
-}
 
 static void AdvanceWagonsAfterCouple(Train *v)
 {
@@ -2144,10 +2092,8 @@ static Train *DecoupleTrain(Train *v)
 		Order *wait_for_couple = new Order();
 		wait_for_couple->MakeWaitCouple();
 		InsertOrder(u, wait_for_couple, 1);
-		//Order *wait_order = new Order();
 	}
 	InvalidateWindowClassesData(WC_TRAINS_LIST, 0);
-	//assert(false);
 	return u;
 }
 
@@ -3981,12 +3927,13 @@ static void Couple(Train *v, Train *u, bool train_u_reversed)
 	Train *v_last = v->Last();
 	ArrangeTrains(&v, v_last, &u_head, u, true);
 	CommandCost ret = CheckTrainAttachment(v);
-	if (ret.Failed()) assert(false);
+	if (ret.Failed()) {
+		return;
+	}
 	
 	u->ClearFrontWagon();
 	u->ClearFrontEngine();
 	
-	//v->direction = ReverseDir(v->direction);
 	NormaliseTrainHead(v);
 	
 	AdvanceWagonsAfterCouple(v_last);
@@ -4002,7 +3949,7 @@ static Train *GetCouplePosition(Train *v, bool &reverse)
 	if (other_vehicle->First()->index == v->index) return nullptr;
 	if (!other_vehicle->current_order.IsType(OT_WAIT_COUPLE)) return nullptr;
 	Train *u = Train::From(other_vehicle)->First();
-	if (!TrainFitStation(u)) return NULL;
+	if (!TrainFitStation(u)) return nullptr;
 	
 	DirDiff dir_diff = DirDifference(v->direction, u->direction);
 	reverse = dir_diff == DIRDIFF_SAME || dir_diff == DIRDIFF_45RIGHT || dir_diff == DIRDIFF_45LEFT;
