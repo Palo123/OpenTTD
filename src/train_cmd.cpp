@@ -2057,18 +2057,21 @@ CommandCost CmdForceTrainProceed(TileIndex tile, DoCommandFlag flags, uint32 p1,
 	return CommandCost();
 }
 
-static bool CanTrainFitStation(Train *v)
+bool TrainFitStation(Train *v)
 {
+	if (!IsRailStationTile(v->tile)) return false;
+	if (!IsRailStationTile(v->Last()->tile)) return false;
 	StationID sid = GetStationIndex(v->tile);
 	const Station *st = Station::Get(sid);
-	int station_length = st->GetPlatformLength(v->tile) * TILE_SIZE;
+	//int station_length = st->GetPlatformLength(v->tile) * TILE_SIZE;
+	int station_length = st->GetPlatformLength(v->tile, DirToDiagDir(ReverseDir(v->direction))) * TILE_SIZE;
 
 	return v->gcache.cached_total_length <= station_length;
 }
 
 static bool CanDecouple(Train *v)
 {
-	if (!CanTrainFitStation(v)) return false; 
+	if (!TrainFitStation(v)) return false; 
 	if (CountVehiclesInChain(v) < 2) return false;
 	if (v->GetNextUnit() == nullptr) return false;
 	if (v->Last()->IsRearDualheaded()) return false;

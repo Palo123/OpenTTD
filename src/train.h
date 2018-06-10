@@ -68,6 +68,8 @@ int GetTrainStopLocation(StationID station_id, TileIndex tile, const Train *v, i
 
 void GetTrainSpriteSize(EngineID engine, uint &width, uint &height, int &xoffs, int &yoffs, EngineImageType image_type);
 
+bool TrainFitStation(Train *v);
+
 /** Variables that are cached to improve performance and such */
 struct TrainCache {
 	/* Cached wagon override spritegroup */

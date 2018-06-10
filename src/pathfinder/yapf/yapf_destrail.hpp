@@ -260,7 +260,7 @@ public:
 		Train *t = GetTrainForReservation(tile, TrackdirToTrack(td));
 		if (t == NULL) return false;
 		if (t->current_order.IsType(OT_WAIT_COUPLE)) {
-			if (CheckOrderLoad(t) && CheckOrderCargoType(t)) return true;
+			if (TrainFitStation(t) && CheckOrderLoad(t) && CheckOrderCargoType(t)) return true;
 		}
 		return false;
 	}
