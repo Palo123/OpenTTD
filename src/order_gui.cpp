@@ -1540,7 +1540,9 @@ public:
 				if (index == 0) {
 					this->OrderClick_Decouple(1);
 				} else {
-					SetDParam(0, 1);
+					const Order *order = this->vehicle->GetOrder(this->OrderGetSel());
+					uint value = order->GetNumDecouple();
+					SetDParam(0, value);
 					ShowQueryString(STR_JUST_INT, STR_ORDER_DECOUPLE_VALUE_CAPT, 4, this, CS_NUMERAL, QSF_NONE);
 				}
 				break;
