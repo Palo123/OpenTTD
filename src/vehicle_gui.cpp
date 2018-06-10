@@ -3041,6 +3041,15 @@ public:
 					str = STR_VEHICLE_STATUS_HEADING_FOR_COUPLE_VEL;
 					break;
 				}
+				
+				case OT_WAIT_COUPLE:
+					assert(v->type == VEH_TRAIN);
+					if (TrainFitStation(Train::From(v))) {
+						str = STR_VEHICLE_STATUS_WAITING_FOR_COUPLE;
+					} else {
+						str = STR_VEHICLE_STATUS_WAITING_FOR_COUPLE_WRONG;
+					}
+					break;
 
 				case OT_LEAVESTATION:
 					if (v->type != VEH_AIRCRAFT) {
