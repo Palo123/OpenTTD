@@ -2441,8 +2441,8 @@ static Track DoTrainPathfind(const Train *v, TileIndex tile, DiagDirection enter
 static bool DoTrainCouplePathfind(const Train *v, bool do_track_reservation)
 {
 	switch (_settings_game.pf.pathfinder_for_trains) {
-		case VPF_NPF: return false;
-		case VPF_YAPF: return YapfTrainCoupleTrack(v, true, !do_track_reservation);
+		case VPF_NPF: return NPFTrainCoupleTrack(v, !do_track_reservation);
+		case VPF_YAPF: return YapfTrainCoupleTrack(v, !do_track_reservation);
 		default: NOT_REACHED();
 	}
 }

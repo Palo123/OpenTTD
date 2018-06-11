@@ -60,7 +60,7 @@ Trackdir YapfRoadVehicleChooseTrack(const RoadVehicle *v, TileIndex tile, DiagDi
  */
 Track YapfTrainChooseTrack(const Train *v, TileIndex tile, DiagDirection enterdir, TrackBits tracks, bool &path_found, bool reserve_track, struct PBSTileInfo *target);
 
-bool YapfTrainCoupleTrack(const Train *v, bool override_railtype, bool dont_reserve);
+bool YapfTrainCoupleTrack(const Train *v, bool dont_reserve);
 
 /**
  * Used when user sends road vehicle to the nearest depot or if road vehicle needs servicing using YAPF.

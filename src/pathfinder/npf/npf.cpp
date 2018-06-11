@@ -1297,6 +1297,11 @@ bool NPFTrainCheckReverse(const Train *v)
 	return ftd.best_bird_dist == 0 && NPFGetFlag(&ftd.node, NPF_FLAG_REVERSE);
 }
 
+bool NPFTrainCoupleTrack(const Train *v, bool do_track_reservation)
+{
+	return false;
+}
+
 Track NPFTrainChooseTrack(const Train *v, bool &path_found, bool reserve_track, struct PBSTileInfo *target)
 {
 	NPFFindStationOrTileData fstd;

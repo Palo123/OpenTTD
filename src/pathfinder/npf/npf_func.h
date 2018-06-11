@@ -78,6 +78,8 @@ bool NPFTrainFindNearestSafeTile(const Train *v, TileIndex tile, Trackdir td, bo
  */
 bool NPFTrainCheckReverse(const Train *v);
 
+bool NPFTrainCoupleTrack(const Train *v, bool do_track_reservation);
+
 /**
  * Finds the best path for given train using NPF.
  * @param v        the train that needs to find a path
