@@ -1316,10 +1316,10 @@ bool NPFTrainCoupleTrack(const Train *v, bool do_track_reservation)
 
 	RailTypes railtypes = v->compatible_railtypes;
 
-	/* perform a breadth first search. Target is NULL,
+	/* perform a breadth first search. Target is nullptr,
 	 * since we are just looking for a train...*/
 	AyStarUserData user = { v->owner, TRANSPORT_RAIL, railtypes, ROADTYPES_NONE };
-	return NPFRouteInternal(&start1, true, NULL, false, &fstd, NPFFindCoupleTrain, NPFCalcZero, &user, 0, true).res_okay;
+	return NPFRouteInternal(&start1, true, nullptr, false, &fstd, NPFFindCoupleTrain, NPFCalcZero, &user, 0, true).res_okay;
 }
 
 Track NPFTrainChooseTrack(const Train *v, bool &path_found, bool reserve_track, struct PBSTileInfo *target)

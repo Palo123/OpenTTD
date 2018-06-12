@@ -2005,6 +2005,49 @@ CommandCost CmdForceTrainProceed(TileIndex tile, DoCommandFlag flags, uint32 p1,
 	return CommandCost();
 }
 
+/* Check if the vehicle is compatible with the specified tile */
+static inline bool CheckCompatibleRail(const Train *v, TileIndex tile)
+{
+	return IsTileOwner(tile, v->owner) &&
+			(!v->IsPrimaryVehicle() || HasBit(v->compatible_railtypes, GetRailType(tile)));
+}
+
+static bool TrainCheckIfLineContinuesAfterStation(Train *v)
+{
+	DiagDirection dir = TrainExitDir(v->direction, v->track);
+	
+	assert(IsRailStationTile(v->tile));
+	assert(dir < DIAGDIR_END);
+
+	TileIndex tile = v->tile;
+	
+	do {
+		tile += TileOffsByDiagDir(dir);
+	} while (IsCompatibleTrainStationTile(tile, v->tile));
+	
+	/* Determine the track status on the next tile */
+	TrackStatus ts = GetTileTrackStatus(tile, TRANSPORT_RAIL, 0, ReverseDiagDir(dir));
+	TrackdirBits reachable_trackdirs = DiagdirReachesTrackdirs(dir);
+
+	TrackdirBits trackdirbits = TrackStatusToTrackdirBits(ts) & reachable_trackdirs;
+	//TrackdirBits red_signals = TrackStatusToRedSignals(ts) & reachable_trackdirs;
+
+	/* We are sure the train is not entering a depot, it is detected above */
+
+	/* mask unreachable track bits if we are forbidden to do 90deg turns */
+	TrackBits bits = TrackdirBitsToTrackBits(trackdirbits);
+	if (_settings_game.pf.forbid_90_deg) {
+		bits &= ~TrackCrossesTracks(FindFirstTrack(v->track));
+	}
+
+	/* no suitable trackbits at all || unusable rail (wrong type or owner) */
+	if (bits == TRACK_BIT_NONE || !CheckCompatibleRail(v, tile)) {
+		return false;
+	}
+	
+	return true;
+}
+
 bool TrainFitStation(const Train *v)
 {
 	if (!IsRailStationTile(v->tile)) return false;
@@ -2022,6 +2065,7 @@ static bool CanDecouple(Train *v)
 	if (!TrainFitStation(v)) return false; 
 	if (CountVehiclesInChain(v) < 2) return false;
 	if (v->GetNextUnit() == nullptr) return false;
+	if (!TrainCheckIfLineContinuesAfterStation(v)) return false;
 	for (Train *z = v; z != nullptr; z = z->Next()) {
 		if (z->IsRearDualheaded()) return false;
 	}
@@ -3010,13 +3054,6 @@ static void TrainEnterStation(Train *v, StationID station)
 
 	TriggerStationRandomisation(st, u->tile, SRT_TRAIN_ARRIVES);
 	TriggerStationAnimation(st, u->tile, SAT_TRAIN_ARRIVES);
-}
-
-/* Check if the vehicle is compatible with the specified tile */
-static inline bool CheckCompatibleRail(const Train *v, TileIndex tile)
-{
-	return IsTileOwner(tile, v->owner) &&
-			(!v->IsPrimaryVehicle() || HasBit(v->compatible_railtypes, GetRailType(tile)));
 }
 
 /** Data structure for storing engine speed changes of an acceleration type. */
