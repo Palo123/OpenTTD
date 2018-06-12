@@ -257,6 +257,7 @@ public:
 	{
 		TrackdirBits tdb = TrackdirToTrackdirBits(td);
 		if (!HasReservedTracks(tile, TrackdirBitsToTrackBits(tdb))) return false;
+		if (!IsRailStationTile(tile)) return false;
 		Train *t = GetTrainForReservation(tile, TrackdirToTrack(td));
 		if (t == NULL) return false;
 		if (t->current_order.IsType(OT_WAIT_COUPLE)) {
