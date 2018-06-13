@@ -484,16 +484,16 @@ public:
 		return 't';
 	}
 
-	static bool stFindNearestCoupleTrain(const Train *v, bool dont_reserve)
+	static Trackdir stFindNearestCoupleTrain(const Train *v, bool dont_reserve)
 	{
 		/* Create pathfinder instance */
 		Tpf pf1;
-		bool result1;
+		Trackdir result1;
 		if (_debug_desync_level < 2) {
 			pf1.DisableCache(true);
 			result1 = pf1.FindNearestCoupleTrain(v, dont_reserve);
 		} else {
-			bool result2 = pf1.FindNearestCoupleTrain(v, true);
+			Trackdir result2 = pf1.FindNearestCoupleTrain(v, true);
 			Tpf pf2;
 			pf2.DisableCache(true);
 			result1 = pf2.FindNearestCoupleTrain(v, dont_reserve);
@@ -506,7 +506,7 @@ public:
 		return result1;
 	}
 
-	bool FindNearestCoupleTrain(const Train *v, bool dont_reserve)
+	Trackdir FindNearestCoupleTrain(const Train *v, bool dont_reserve)
 	{
 		PBSTileInfo origin = FollowTrainReservation(v);
 		/* Set origin and destination. */
@@ -514,22 +514,28 @@ public:
 		Yapf().SetDestination(v);
 
 		bool path_found = Yapf().FindPath(v);
-		if (!path_found) return false;
+		if (!path_found) return INVALID_TRACKDIR;
 
 		/* Found a destination, set as reservation target. */
 		Node *pNode = Yapf().GetBestNode();
 		this->SetReservationTarget(pNode, pNode->GetLastTile(), pNode->GetLastTrackdir());
 
 		/* Walk through the path back to the origin. */
+		Trackdir next_trackdir = INVALID_TRACKDIR;
 		Node *pPrev = NULL;
 		while (pNode->m_parent != NULL) {
 			pPrev = pNode;
 			pNode = pNode->m_parent;
 
-			if (!this->CheckSafePositionOnNode(pPrev)) return false;
+			if (!this->CheckSafePositionOnNode(pPrev)) return INVALID_TRACKDIR;
+		}
+		
+		next_trackdir = pPrev->GetTrackdir();
+		if (!dont_reserve) {
+			return this->TryReservePath(NULL, pNode->GetLastTile(), true) ? next_trackdir : INVALID_TRACKDIR;
 		}
 
-		return dont_reserve || this->TryReservePath(NULL, pNode->GetLastTile(), true);
+		return next_trackdir;
 	}
 };
 
@@ -720,10 +726,10 @@ Track YapfTrainChooseTrack(const Train *v, TileIndex tile, DiagDirection enterdi
 	return (td_ret != INVALID_TRACKDIR) ? TrackdirToTrack(td_ret) : FindFirstTrack(tracks);
 }
 
-bool YapfTrainCoupleTrack(const Train *v, bool dont_reserve)
+Track YapfTrainCoupleTrack(const Train *v, bool dont_reserve)
 {
 	/* default is YAPF type 2 */
-	typedef bool (*PfnCoupleRailTrack)(const Train*, bool);
+	typedef Trackdir (*PfnCoupleRailTrack)(const Train*, bool);
 	PfnCoupleRailTrack pfnCoupleRailTrack = &CYapfCouple1::stFindNearestCoupleTrain;
 
 	/* check if non-default YAPF type needed */
@@ -731,8 +737,8 @@ bool YapfTrainCoupleTrack(const Train *v, bool dont_reserve)
 		pfnCoupleRailTrack = &CYapfCouple2::stFindNearestCoupleTrain; // Trackdir, forbid 90-deg
 	}
 
-	bool b = pfnCoupleRailTrack(v, dont_reserve);
-	return b;
+	Trackdir ret = pfnCoupleRailTrack(v, dont_reserve);
+	return (ret != INVALID_TRACKDIR) ? TrackdirToTrack(ret) : INVALID_TRACK;
 }
 
 bool YapfTrainCheckReverse(const Train *v)

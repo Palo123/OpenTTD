@@ -2482,10 +2482,10 @@ static Track DoTrainPathfind(const Train *v, TileIndex tile, DiagDirection enter
 	}
 }
 
-static bool DoTrainCouplePathfind(const Train *v, bool do_track_reservation)
+static Track DoTrainCouplePathfind(const Train *v, bool do_track_reservation)
 {
 	switch (_settings_game.pf.pathfinder_for_trains) {
-		case VPF_NPF: return NPFTrainCoupleTrack(v, !do_track_reservation);
+		case VPF_NPF: return INVALID_TRACK; //NPFTrainCoupleTrack(v, do_track_reservation);
 		case VPF_YAPF: return YapfTrainCoupleTrack(v, !do_track_reservation);
 		default: NOT_REACHED();
 	}
@@ -2755,11 +2755,14 @@ static Track ChooseTrainTrack(Train *v, TileIndex tile, DiagDirection enterdir, 
 	}
 	
 	if (v->current_order.IsType(OT_GOTO_COUPLE)) {
-		bool path_found = true;
+		Track path_found;
 		
 		path_found = DoTrainCouplePathfind(v, do_track_reservation);
+		if (path_found != INVALID_TRACK) {
+			best_track = path_found;
+		}
 		
-		if (!path_found) {
+		if (path_found == INVALID_TRACK) {
 			if (mark_stuck) MarkTrainAsStuck(v);
 			FreeTrainTrackReservation(v);
 			if (changed_signal) SetSignalStateByTrackdir(tile, TrackEnterdirToTrackdir(best_track, enterdir), SIGNAL_STATE_RED);
