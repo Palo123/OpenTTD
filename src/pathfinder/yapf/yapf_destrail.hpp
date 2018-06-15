@@ -254,7 +254,8 @@ public:
 	
 	bool CheckNumberOfWagons(Train *t)
 	{
-		return true;
+		if (dest_order.GetNumCouple() == 0) return true;
+		return (dest_order.GetNumCouple() == CountVehiclesInVehicles(t));
 	}
 
 	/** Called by YAPF to detect if node ends in the desired destination */

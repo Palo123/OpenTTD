@@ -704,6 +704,13 @@ uint CountVehiclesInChain(const Vehicle *v)
 	return count;
 }
 
+uint CountVehiclesInVehicles(const Vehicle *v)
+{
+	uint count = 0;
+	do count++; while ((v = v->GetNextVehicle()) != NULL);
+	return count;
+}
+
 /**
  * Check if a vehicle is counted in num_engines in each company struct
  * @return true if the vehicle is counted in num_engines

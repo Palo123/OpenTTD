@@ -2063,7 +2063,7 @@ bool TrainFitStation(const Train *v)
 static bool CanDecouple(Train *v)
 {
 	if (!TrainFitStation(v)) return false; 
-	if (CountVehiclesInChain(v) < 2) return false;
+	if (CountVehiclesInVehicles(v) < 2) return false;
 	if (v->GetNextUnit() == nullptr) return false;
 	if (!TrainCheckIfLineContinuesAfterStation(v)) return false;
 	return true;
