@@ -253,6 +253,8 @@ bool Vehicle::NeedsAutomaticServicing() const
 {
 	if (this->HasDepotOrder()) return false;
 	if (this->current_order.IsType(OT_LOADING)) return false;
+	if (this->current_order.IsType(OT_WAIT_COUPLE)) return false;
+	if (this->current_order.IsType(OT_GOTO_COUPLE)) return false;
 	if (this->current_order.IsType(OT_GOTO_DEPOT) && this->current_order.GetDepotOrderType() != ODTFB_SERVICE) return false;
 	return NeedsServicing();
 }
