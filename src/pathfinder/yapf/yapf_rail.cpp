@@ -106,6 +106,7 @@ private:
 	
 	bool FindSafeCouplePositionProc(TileIndex tile, Trackdir td)
 	{
+		if (IsRailDepotTile(tile)) return false;
 		TrackdirBits tdb = TrackdirToTrackdirBits(td);
 		TrackBits tracks = TrackdirBitsToTrackBits(tdb);
 		if (HasReservedTracks(tile, tracks)) {
