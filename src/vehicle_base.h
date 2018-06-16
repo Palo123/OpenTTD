@@ -719,6 +719,8 @@ public:
 
 		this->profit_this_year = src->profit_this_year;
 		this->profit_last_year = src->profit_last_year;
+		
+		this->last_station_visited = src->last_station_visited;
 	}
 
 
