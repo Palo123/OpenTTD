@@ -1327,7 +1327,7 @@ CommandCost CmdModifyOrder(TileIndex tile, DoCommandFlag flags, uint32 p1, uint3
 			break;
 			
 		case OT_GOTO_COUPLE:
-			if (mof != MOF_COUPLE_LOAD && mof != MOF_COUPLE_CARGO) return CMD_ERROR;
+			if (mof != MOF_COUPLE_LOAD && mof != MOF_COUPLE_CARGO && mof != MOF_COUPLE_VALUE) return CMD_ERROR;
 			break;
 
 		default:
@@ -1421,6 +1421,10 @@ CommandCost CmdModifyOrder(TileIndex tile, DoCommandFlag flags, uint32 p1, uint3
 			
 		case MOF_COUPLE_CARGO:
 			if (data >= NUM_CARGO && data != CT_COUPLE_ANY_CARGO) return CMD_ERROR;
+			break;
+		
+		case MOF_COUPLE_VALUE:
+			if (data > 127) return CMD_ERROR;
 			break;
 	}
 
@@ -1528,6 +1532,10 @@ CommandCost CmdModifyOrder(TileIndex tile, DoCommandFlag flags, uint32 p1, uint3
 			case MOF_COUPLE_CARGO:
 				order->SetCoupleCargoType((CargoID)data);
 				break;
+				
+			case MOF_COUPLE_VALUE:
+				order->SetNumCouple(data);
+				break;
 
 			default: NOT_REACHED();
 		}
@@ -1557,6 +1565,7 @@ CommandCost CmdModifyOrder(TileIndex tile, DoCommandFlag flags, uint32 p1, uint3
 				if (u->current_order.IsType(OT_GOTO_COUPLE)) {
 					u->current_order.SetCoupleLoad(order->GetCoupleLoad());
 					u->current_order.SetCoupleCargoType(order->GetCoupleCargoType());
+					u->current_order.SetNumCouple(order->GetNumCouple());
 				}
 			}
 			InvalidateVehicleOrder(u, VIWD_MODIFY_ORDERS);

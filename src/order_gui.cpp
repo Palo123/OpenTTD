@@ -370,14 +370,19 @@ void DrawOrderString(const Vehicle *v, const Order *order, int order_index, int 
 			}
 			break;
 			
-		case OT_GOTO_COUPLE:
-			SetDParam(0, STR_ORDER_GO_TO_COUPLE);
+		case OT_GOTO_COUPLE: {
+			SetDParam(0, order->HasCoupleCargoType() ? STR_ORDER_GO_TO_COUPLE_CARGO : STR_ORDER_GO_TO_COUPLE);
 			SetDParam(1, STR_ORDER_COUPLE_ANY + order->GetCoupleLoad());
 			if (order->HasCoupleCargoType()) {
-				SetDParam(5, STR_ORDER_COUPLE_CARGO);
-				SetDParam(6, CargoSpec::Get(order->GetCoupleCargoType())->name);
+				SetDParam(2, CargoSpec::Get(order->GetCoupleCargoType())->name);
+			}
+			uint num_d = order->GetNumDecouple();
+			if (num_d > 0) {
+				SetDParam(5, STR_ORDER_COUPLE_UNITS);
+				SetDParam(6, num_d);
 			}
 			break;
+		}
 		
 		case OT_WAIT_COUPLE:
 			SetDParam(0, STR_ORDER_WAIT_FOR_COUPLE);
@@ -1461,9 +1466,13 @@ public:
 			case WID_O_COUPLE_CARGO:
 				OrderClick_CoupleCargo();
 				break;
-			case WID_O_CARGOLIST:
-			
+			case WID_O_COUPLE_VALUE: {
+				const Order *order = this->vehicle->GetOrder(this->OrderGetSel());
+				uint value = order->GetNumCouple();
+				SetDParam(0, value);
+				ShowQueryString(STR_JUST_INT, STR_ORDER_DECOUPLE_VALUE_CAPT, 4, this, CS_NUMERAL, QSF_NONE);
 				break;
+			}
 		}
 	}
 
@@ -1487,8 +1496,10 @@ public:
 						break;
 				}
 				DoCommandP(this->vehicle->tile, this->vehicle->index + (sel << 20), MOF_COND_VALUE | Clamp(value, 0, 2047) << 4, CMD_MODIFY_ORDER | CMD_MSG(STR_ERROR_CAN_T_MODIFY_THIS_ORDER));
-			} else {
+			} else if (this->vehicle->GetOrder(sel)->IsType(OT_GOTO_STATION)) {
 				DoCommandP(this->vehicle->tile, this->vehicle->index + (sel << 20), MOF_DECOUPLE_VALUE | Clamp(value, 1, 127) << 4, CMD_MODIFY_ORDER | CMD_MSG(STR_ERROR_CAN_T_MODIFY_THIS_ORDER));
+			} else {
+				DoCommandP(this->vehicle->tile, this->vehicle->index + (sel << 20), MOF_COUPLE_VALUE | Clamp(value, 0, 127) << 4, CMD_MODIFY_ORDER | CMD_MSG(STR_ERROR_CAN_T_MODIFY_THIS_ORDER));
 			}
 		}
 	}
@@ -1747,8 +1758,8 @@ static const NWidgetPart _nested_orders_train_widgets[] = {
 															SetDataTip(STR_ORDER_TOGGLE_COUPLE_LOAD, STR_ORDER_CONDITIONAL_VARIABLE_TOOLTIP), SetResize(1, 0),
 				NWidget(WWT_TEXTBTN, COLOUR_GREY, WID_O_COUPLE_CARGO), SetMinimalSize(124, 12), SetFill(1, 0),
 															SetDataTip(STR_ORDER_CARGO_TYPE_BUTTON, STR_ORDER_CONDITIONAL_COMPARATOR_TOOLTIP), SetResize(1, 0),
-				NWidget(WWT_PUSHTXTBTN, COLOUR_GREY, WID_O_COND_VALUE), SetMinimalSize(124, 12), SetFill(1, 0),
-															SetDataTip(STR_ORDER_REFIT, STR_ORDER_CONDITIONAL_VALUE_TOOLTIP), SetResize(1, 0),
+				NWidget(WWT_PUSHTXTBTN, COLOUR_GREY, WID_O_COUPLE_VALUE), SetMinimalSize(124, 12), SetFill(1, 0),
+															SetDataTip(STR_ORDERS_COUPLE_VALUE_BUTTON, STR_ORDER_CONDITIONAL_VALUE_TOOLTIP), SetResize(1, 0),
 			EndContainer(),
 		EndContainer(),
 		NWidget(WWT_PUSHIMGBTN, COLOUR_GREY, WID_O_SHARED_ORDER_LIST), SetMinimalSize(12, 12), SetDataTip(SPR_SHARED_ORDERS_ICON, STR_ORDERS_VEH_WITH_SHARED_ORDERS_LIST_TOOLTIP),

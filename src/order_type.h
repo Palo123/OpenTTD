@@ -168,6 +168,7 @@ enum ModifyOrderFlags {
 	MOF_DECOUPLE_VALUE,  ///< Change number of decoupled units.
 	MOF_COUPLE_LOAD,     ///< Change load parameters of desired train.
 	MOF_COUPLE_CARGO,    ///< Change cargo parameter for desired train.
+	MOF_COUPLE_VALUE,    ///< Change number of coupled units.
 	MOF_END
 };
 template <> struct EnumPropsT<ModifyOrderFlags> : MakeEnumPropsT<ModifyOrderFlags, byte, MOF_NON_STOP, MOF_END, MOF_END, 4> {};

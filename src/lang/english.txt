@@ -3990,6 +3990,8 @@ STR_ORDER_CONDITIONAL_VALUE_CAPT                                :{WHITE}Enter va
 STR_ORDERS_SKIP_BUTTON                                          :{BLACK}Skip
 STR_ORDERS_SKIP_TOOLTIP                                         :{BLACK}Skip the current order, and start the next. Ctrl+Click skips to the selected order
 
+STR_ORDERS_COUPLE_VALUE_BUTTON                                  :{BLACK}Units couple
+
 STR_ORDERS_DECOUPLE_BUTTON                                      :{BLACK}Decouple
 STR_ORDERS_DECOUPLE_DROP                                        :Decouple
 STR_ORDERS_DECOUPLE_VALUE                                       :Units decouple
@@ -4013,11 +4015,10 @@ STR_ORDER_WAIT_FOR_COUPLE                                       :Wait for couple
 STR_ORDERS_GO_TO_TOOLTIP                                        :{BLACK}Insert a new order before the highlighted order, or add to end of list. Ctrl makes station orders 'full load any cargo', waypoint orders 'non-stop' and depot orders 'service'. 'Share orders' or Ctrl lets this vehicle share orders with the selected vehicle. Clicking a vehicle copies the orders from that vehicle. A depot order disables automatic servicing of the vehicle
 
 STR_ORDER_GO_TO_COUPLE                                          :Go to couple {STRING} train
+STR_ORDER_GO_TO_COUPLE_CARGO                                    :Go to couple {STRING} train that can carry {STRING}
 STR_ORDER_COUPLE_ANY                                            :any
 STR_ORDER_COUPLE_EMPTY                                          :empty
 STR_ORDER_COUPLE_FULL                                           :full
-
-STR_ORDER_COUPLE_CARGO                                          :that can carry {STRING}
 
 STR_ORDER_CARGO_TYPE_BUTTON                                     :{BLACK}Cargo type
 
@@ -4063,6 +4064,7 @@ STR_ORDER_NO_UNLOAD_FULL_LOAD_ANY                               :(No unloading a
 STR_ORDER_NO_UNLOAD_NO_LOAD                                     :(No unloading and no loading)
 
 STR_ORDER_DECOUPLE                                              :(Decouple and keep {COMMA} units)
+STR_ORDER_COUPLE_UNITS                                          :(with {COMMA} units)
 
 STR_ORDER_AUTO_REFIT                                            :(Refit to {STRING})
 STR_ORDER_FULL_LOAD_REFIT                                       :(Full load with refit to {STRING})

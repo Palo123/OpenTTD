@@ -40,7 +40,7 @@ enum OrderWidgets {
 	WID_O_DECOUPLE,                  ///< Decouple at station.
 	WID_O_COUPLE_LOAD,               ///< Select couple load.
 	WID_O_COUPLE_CARGO,              ///< Select cargotype for coupling
-	WID_O_CARGOLIST,                 ///< List of cargotypes for couple cargo
+	WID_O_COUPLE_VALUE,              ///< Select number of units for coupling
 };
 
 #endif /* WIDGETS_ORDER_WIDGET_H */
