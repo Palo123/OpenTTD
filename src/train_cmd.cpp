@@ -243,7 +243,7 @@ bool Train::ConsistChanged(ConsistChangeFlags allowed_changes)
 	/* recalculate cached weights and power too (we do this *after* the rest, so it is known which wagons are powered and need extra weight added) */
 	this->CargoChanged();
 
-	if (this->IsFrontEngine()) {
+	if (this->IsPrimaryVehicle()) {
 		this->UpdateAcceleration();
 		SetWindowDirty(WC_VEHICLE_DETAILS, this->index);
 		InvalidateWindowData(WC_VEHICLE_REFIT, this->index, VIWD_CONSIST_CHANGED);
@@ -3138,7 +3138,7 @@ void Train::ReserveTrackUnderConsist() const
 uint Train::Crash(bool flooded)
 {
 	uint pass = 0;
-	if (this->IsFrontEngine()) {
+	if (this->IsPrimaryVehicle()) {
 		pass += 2; // driver
 
 		/* Remove the reserved path in front of the train if it is not stuck.
@@ -3289,7 +3289,7 @@ static Vehicle *CheckTrainAtSignal(Vehicle *v, void *data)
 	DiagDirection exitdir = *(DiagDirection *)data;
 
 	/* not front engine of a train, inside wormhole or depot, crashed */
-	if (!t->IsFrontEngine() || !(t->track & TRACK_BIT_MASK)) return nullptr;
+	if (!t->IsPrimaryVehicle() || !(t->track & TRACK_BIT_MASK)) return nullptr;
 
 	if (t->cur_speed > 5 || VehicleExitDir(t->direction, t->track) != exitdir) return nullptr;
 
@@ -3484,7 +3484,7 @@ bool TrainController(Train *v, Vehicle *nomove, bool reverse)
 				if (!HasBit(r, VETS_ENTERED_WORMHOLE)) {
 					Track track = FindFirstTrack(chosen_track);
 					Trackdir tdir = TrackDirectionToTrackdir(track, chosen_dir);
-					if (v->IsFrontEngine() && HasPbsSignalOnTrackdir(gp.new_tile, tdir)) {
+					if (v->IsPrimaryVehicle() && HasPbsSignalOnTrackdir(gp.new_tile, tdir)) {
 						SetSignalStateByTrackdir(gp.new_tile, tdir, SIGNAL_STATE_RED);
 						MarkTileDirtyByTile(gp.new_tile);
 					}
@@ -3516,7 +3516,7 @@ bool TrainController(Train *v, Vehicle *nomove, bool reverse)
 					v->direction = chosen_dir;
 				}
 
-				if (v->IsFrontEngine()) {
+				if (v->IsPrimaryVehicle()) {
 					v->wait_counter = 0;
 
 					/* If we are approaching a crossing that is reserved, play the sound now. */
@@ -3535,7 +3535,7 @@ bool TrainController(Train *v, Vehicle *nomove, bool reverse)
 		} else {
 			if (IsTileType(gp.new_tile, MP_TUNNELBRIDGE) && HasBit(VehicleEnterTile(v, gp.new_tile, gp.x, gp.y), VETS_ENTERED_WORMHOLE)) {
 				/* Perform look-ahead on tunnel exit. */
-				if (v->IsFrontEngine()) {
+				if (v->IsPrimaryVehicle()) {
 					TryReserveRailTrack(gp.new_tile, DiagDirToDiagTrack(GetTunnelBridgeDirection(gp.new_tile)));
 					CheckNextTrainTile(v);
 				}
@@ -3569,7 +3569,7 @@ bool TrainController(Train *v, Vehicle *nomove, bool reverse)
 		}
 
 		if (update_signals_crossing) {
-			if (v->IsFrontEngine()) {
+			if (v->IsPrimaryVehicle()) {
 				if (TrainMovedChangeSignals(gp.new_tile, enterdir)) {
 					/* We are entering a block with PBS signals right now, but
 					 * not through a PBS signal. This means we don't have a
@@ -3596,7 +3596,7 @@ bool TrainController(Train *v, Vehicle *nomove, bool reverse)
 		}
 
 		/* Do not check on every tick to save some computing time. */
-		if (v->IsFrontEngine() && v->tick_counter % _settings_game.pf.path_backoff_interval == 0) CheckNextTrainTile(v);
+		if (v->IsPrimaryVehicle() && v->tick_counter % _settings_game.pf.path_backoff_interval == 0) CheckNextTrainTile(v);
 	}
 
 	if (direction_changed) first->tcache.cached_max_curve_speed = first->GetCurveSpeedLimit();
