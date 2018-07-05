@@ -2762,7 +2762,7 @@ static Track ChooseTrainTrack(Train *v, TileIndex tile, DiagDirection enterdir, 
 		Track path_found;
 		
 		path_found = DoTrainCouplePathfind(v, do_track_reservation);
-		if (path_found != INVALID_TRACK) {
+		if (path_found != INVALID_TRACK && res_dest.tile == tile) {
 			best_track = path_found;
 		}
 		
