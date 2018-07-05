@@ -920,7 +920,7 @@ static void NormaliseSubtypes(Train *chain)
 
 	/* Set the appropriate bits for the first in the chain. */
 	if (chain->IsWagon()) {
-		chain->SetFreeWagon();
+		if (!chain->IsFrontWagon()) chain->SetFreeWagon();
 	} else {
 		assert(chain->IsEngine());
 		chain->SetFrontEngine();
@@ -930,6 +930,7 @@ static void NormaliseSubtypes(Train *chain)
 	for (Train *t = chain->Next(); t != nullptr; t = t->Next()) {
 		t->ClearFreeWagon();
 		t->ClearFrontEngine();
+		t->ClearFrontWagon();
 	}
 }
 
@@ -1238,8 +1239,8 @@ CommandCost CmdMoveRailVehicle(TileIndex tile, DoCommandFlag flags, uint32 p1, u
 	/* We want this information from before the rearrangement, but execute this after the validation.
 	 * original_src_head can't be nullptr; src is by definition != nullptr, so src_head can't be nullptr as
 	 * src->GetFirst() always yields non-nullptr, so eventually original_src_head != nullptr as well. */
-	bool original_src_head_front_engine = original_src_head->IsFrontEngine();
-	bool original_dst_head_front_engine = original_dst_head != nullptr && original_dst_head->IsFrontEngine();
+	bool original_src_head_front_engine = original_src_head->IsPrimaryVehicle();
+	bool original_dst_head_front_engine = original_dst_head != nullptr && original_dst_head->IsPrimaryVehicle();
 
 	/* (Re)arrange the trains in the wanted arrangement. */
 	ArrangeTrains(&dst_head, dst, &src_head, src, move_chain);
@@ -1287,7 +1288,7 @@ CommandCost CmdMoveRailVehicle(TileIndex tile, DoCommandFlag flags, uint32 p1, u
 		 *  6) non front engine gets moved within a train / to another train, nothing happens
 		 *  7) wagon gets moved, nothing happens
 		 */
-		if (src == original_src_head && src->IsEngine() && !src->IsFrontEngine()) {
+		if (src == original_src_head && original_src_head_front_engine && !src->IsPrimaryVehicle()) {
 			/* Cases #2 and #3: the front engine gets trashed. */
 			DeleteWindowById(WC_VEHICLE_VIEW, src->index);
 			DeleteWindowById(WC_VEHICLE_ORDERS, src->index);
@@ -1312,8 +1313,8 @@ CommandCost CmdMoveRailVehicle(TileIndex tile, DoCommandFlag flags, uint32 p1, u
 		}
 
 		/* Add new heads to statistics */
-		if (src_head != nullptr && src_head->IsFrontEngine()) GroupStatistics::CountVehicle(src_head, 1);
-		if (dst_head != nullptr && dst_head->IsFrontEngine()) GroupStatistics::CountVehicle(dst_head, 1);
+		if (src_head != nullptr && src_head->IsPrimaryVehicle()) GroupStatistics::CountVehicle(src_head, 1);
+		if (dst_head != nullptr && dst_head->IsPrimaryVehicle()) GroupStatistics::CountVehicle(dst_head, 1);
 
 		/* Handle 'new engine' part of cases #1b, #2b, #3b, #4b and #5 in NormaliseTrainHead. */
 		NormaliseTrainHead(src_head);
