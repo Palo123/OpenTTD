@@ -175,7 +175,19 @@ struct Train FINAL : public GroundVehicle<Train, VEH_TRAIN> {
 		 * longer than the part after the center. This means we have to round up the
 		 * length of the next vehicle but may not round the length of the current
 		 * vehicle. */
-		return this->gcache.cached_veh_length / 2 + (this->Next() != nullptr ? this->Next()->gcache.cached_veh_length + 1 : 0) / 2;
+		int front_d = HasBit(this->flags, VRF_REVERSE_DIRECTION) ? (this->gcache.cached_veh_length + 1) / 2 : this->gcache.cached_veh_length / 2;
+		Train *next = this->Next();
+		int rear_d = 0;
+		if (next != nullptr) {
+			rear_d = HasBit(next->flags, VRF_REVERSE_DIRECTION) ? next->gcache.cached_veh_length / 2 : (next->gcache.cached_veh_length + 1) / 2;
+		}
+		return front_d + rear_d;
+	}
+	
+	inline const Train* GetMainArticulatedPart() const
+	{
+		if (!this->HasArticulatedPart() || !HasBit(this->flags, VRF_REVERSE_DIRECTION)) return this;
+		return this->GetLastEnginePart();
 	}
 
 protected: // These functions should not be called outside acceleration code.
@@ -188,9 +200,10 @@ protected: // These functions should not be called outside acceleration code.
 	{
 		/* Power is not added for articulated parts */
 		if (!this->IsArticulatedPart() && HasPowerOnRail(this->railtype, GetRailType(this->tile))) {
-			uint16 power = GetVehicleProperty(this, PROP_TRAIN_POWER, RailVehInfo(this->engine_type)->power);
+			const Train *t = this->GetMainArticulatedPart();
+			uint16 power = GetVehicleProperty(t, PROP_TRAIN_POWER, RailVehInfo(t->engine_type)->power);
 			/* Halve power for multiheaded parts */
-			if (this->IsMultiheaded()) power /= 2;
+			if (t->IsMultiheaded()) power /= 2;
 			return power;
 		}
 
@@ -221,7 +234,8 @@ protected: // These functions should not be called outside acceleration code.
 
 		/* Vehicle weight is not added for articulated parts. */
 		if (!this->IsArticulatedPart()) {
-			weight += GetVehicleProperty(this, PROP_TRAIN_WEIGHT, RailVehInfo(this->engine_type)->weight);
+			const Train *t = this->GetMainArticulatedPart();
+			weight += GetVehicleProperty(t, PROP_TRAIN_WEIGHT, RailVehInfo(t->engine_type)->weight);
 		}
 
 		/* Powered wagons have extra weight added. */
@@ -238,7 +252,8 @@ protected: // These functions should not be called outside acceleration code.
 	 */
 	inline byte GetTractiveEffort() const
 	{
-		return GetVehicleProperty(this, PROP_TRAIN_TRACTIVE_EFFORT, RailVehInfo(this->engine_type)->tractive_effort);
+		const Train *t = this->GetMainArticulatedPart();
+		return GetVehicleProperty(t, PROP_TRAIN_TRACTIVE_EFFORT, RailVehInfo(t->engine_type)->tractive_effort);
 	}
 
 	/**

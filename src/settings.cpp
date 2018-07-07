@@ -925,7 +925,7 @@ static bool UpdateConsists(int32 p1)
 {
 	for (Train *t : Train::Iterate()) {
 		/* Update the consist of all trains so the maximum speed is set correctly. */
-		if (t->IsFrontEngine() || t->IsFreeWagon()) t->ConsistChanged(CCF_TRACK);
+		if (t->IsFrontEngine() || t->IsFreeWagon() || t->IsFrontWagon()) t->ConsistChanged(CCF_TRACK);
 	}
 	InvalidateWindowClassesData(WC_BUILD_VEHICLE, 0);
 	return true;
@@ -1023,7 +1023,7 @@ static bool UpdateIntervalAircraft(int32 p1)
 static bool TrainAccelerationModelChanged(int32 p1)
 {
 	for (Train *t : Train::Iterate()) {
-		if (t->IsFrontEngine()) {
+		if (t->IsPrimaryVehicle()) {
 			t->tcache.cached_max_curve_speed = t->GetCurveSpeedLimit();
 			t->UpdateAcceleration();
 		}
@@ -1045,7 +1045,7 @@ static bool TrainAccelerationModelChanged(int32 p1)
 static bool TrainSlopeSteepnessChanged(int32 p1)
 {
 	for (Train *t : Train::Iterate()) {
-		if (t->IsFrontEngine()) t->CargoChanged();
+		if (t->IsPrimaryVehicle()) t->CargoChanged();
 	}
 
 	return true;

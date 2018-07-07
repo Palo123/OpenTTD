@@ -441,6 +441,9 @@ static uint32 PositionHelper(const Vehicle *v, bool consecutive)
 		u = u->Next();
 	}
 
+	if (v->type == VEH_TRAIN && HasBit(Train::From(v)->flags, VRF_REVERSE_DIRECTION)) {
+		Swap(chain_before, chain_after);
+	}
 	return chain_before | chain_after << 8 | (chain_before + chain_after + consecutive) << 16;
 }
 
@@ -634,6 +637,9 @@ static uint32 VehicleGetVariable(Vehicle *v, const VehicleScopeResolver *object,
 				for (const Vehicle *u = v; u->IsArticulatedPart(); u = u->Previous()) artic_before++;
 				byte artic_after = 0;
 				for (const Vehicle *u = v; u->HasArticulatedPart(); u = u->Next()) artic_after++;
+				if (v->type == VEH_TRAIN && HasBit(Train::From(v)->flags, VRF_REVERSE_DIRECTION)) {
+					Swap(artic_before, artic_after);
+				}
 				v->grf_cache.position_in_vehicle = artic_before | artic_after << 8;
 				SetBit(v->grf_cache.cache_valid, NCVV_POSITION_IN_VEHICLE);
 			}

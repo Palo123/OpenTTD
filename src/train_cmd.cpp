@@ -40,6 +40,10 @@
 
 #include "safeguards.h"
 
+extern void ChangeVehicleViewports(VehicleID from_index, VehicleID to_index);
+extern void ChangeVehicleNews(VehicleID from_index, VehicleID to_index);
+extern void ChangeVehicleViewWindow(VehicleID from_index, VehicleID to_index);
+
 static Track ChooseTrainTrack(Train *v, TileIndex tile, DiagDirection enterdir, TrackBits tracks, bool force_res, bool *got_reservation, bool mark_stuck);
 static bool TrainCheckIfLineEnds(Train *v, bool reverse = true);
 bool TrainController(Train *v, Vehicle *nomove, bool reverse = true); // Also used in vehicle_sl.cpp.
@@ -107,32 +111,50 @@ void CheckTrainsLengths()
 bool Train::ConsistChanged(ConsistChangeFlags allowed_changes)
 {
 	uint16 max_speed = UINT16_MAX;
+	Train *last = this->Last();
 
 	assert(this->IsFrontEngine() || this->IsFreeWagon() || this->IsFrontWagon());
 
 	const RailVehicleInfo *rvi_v = RailVehInfo(this->engine_type);
 	EngineID first_engine = this->IsFrontEngine() ? this->engine_type : INVALID_ENGINE;
+	EngineID last_engine = last->IsEngine() || last->IsRearDualheaded() ||
+							(last->IsArticulatedPart() && last->GetFirstEnginePart()->IsEngine())
+							? last->engine_type : INVALID_ENGINE;
 	this->gcache.cached_total_length = 0;
 	this->compatible_railtypes = RAILTYPES_NONE;
 
 	bool train_can_tilt = true;
 
-	for (Train *u = this; u != nullptr; u = u->Next()) {
-		const RailVehicleInfo *rvi_u = RailVehInfo(u->engine_type);
+	for (int reverse_order = 0; reverse_order < 2; reverse_order++) {
+		for (Train *u = reverse_order ? last : this; u != nullptr; u = reverse_order ? u->Previous() : u->Next()) {
+			const RailVehicleInfo *rvi_u = RailVehInfo(u->engine_type);
 
-		/* Check the this->first cache. */
-		assert(u->First() == this);
+			/* Check the this->first cache. */
+			assert(u->First() == this);
 
-		/* update the 'first engine' */
-		u->gcache.first_engine = this == u ? INVALID_ENGINE : first_engine;
-		u->railtype = rvi_u->railtype;
+			/* update the 'first engine' */
+			if (reverse_order) {
+				if (HasBit(u->flags, VRF_REVERSE_DIRECTION)) {
+					u->gcache.first_engine = last == u ? INVALID_ENGINE : last_engine;
+					if (u->IsEngine() || u->IsRearDualheaded() ||
+						(u->GetLastEnginePart() == u && u->GetFirstEnginePart()->IsEngine()))
+						last_engine = u->engine_type;
+				}
+			} else {
+				if (!HasBit(u->flags, VRF_REVERSE_DIRECTION)) {
+					u->gcache.first_engine = this == u ? INVALID_ENGINE : first_engine;
+					if (u->IsEngine()) first_engine = u->engine_type;
+				}
+			}
+			u->railtype = rvi_u->railtype;
 
-		if (u->IsEngine()) first_engine = u->engine_type;
 
-		/* Set user defined data to its default value */
-		u->tcache.user_def_data = rvi_u->user_def_data;
-		this->InvalidateNewGRFCache();
-		u->InvalidateNewGRFCache();
+			/* Set user defined data to its default value */
+			u->tcache.user_def_data = rvi_u->user_def_data;
+			this->InvalidateNewGRFCache();
+			last->InvalidateNewGRFCache();
+			u->InvalidateNewGRFCache();
+		}
 	}
 
 	for (Train *u = this; u != nullptr; u = u->Next()) {
@@ -165,12 +187,13 @@ bool Train::ConsistChanged(ConsistChangeFlags allowed_changes)
 			ClrBit(u->flags, VRF_POWEREDWAGON);
 		}
 
+		/* Do not count powered wagons for the compatible railtypes, as wagons always
+		   have railtype normal */
+		if (rvi_u->power > 0) {
+			this->compatible_railtypes |= GetRailTypeInfo(u->railtype)->powered_railtypes;
+		}
+
 		if (!u->IsArticulatedPart()) {
-			/* Do not count powered wagons for the compatible railtypes, as wagons always
-			   have railtype normal */
-			if (rvi_u->power > 0) {
-				this->compatible_railtypes |= GetRailTypeInfo(u->railtype)->powered_railtypes;
-			}
 
 			/* Some electric engines can be allowed to run on normal rail. It happens to all
 			 * existing electric engines when elrails are disabled and then re-enabled */
@@ -179,9 +202,11 @@ bool Train::ConsistChanged(ConsistChangeFlags allowed_changes)
 				u->compatible_railtypes |= RAILTYPES_RAIL;
 			}
 
+			const Train *t = this->GetMainArticulatedPart();
 			/* max speed is the minimum of the speed limits of all vehicles in the consist */
-			if ((rvi_u->railveh_type != RAILVEH_WAGON || _settings_game.vehicle.wagon_speed_limits) && !UsesWagonOverride(u)) {
-				uint16 speed = GetVehicleProperty(u, PROP_TRAIN_SPEED, rvi_u->max_speed);
+			if ((t->GetEngine()->u.rail.railveh_type != RAILVEH_WAGON || _settings_game.vehicle.wagon_speed_limits) && !UsesWagonOverride(t)) {
+				//const Train *t = this->GetMainArticulatedPart();
+				uint16 speed = GetVehicleProperty(t, PROP_TRAIN_SPEED, t->GetEngine()->u.rail.max_speed);
 				if (speed != 0) max_speed = min(speed, max_speed);
 			}
 		}
@@ -452,6 +477,9 @@ int Train::GetDisplayImageWidth(Point *offset) const
 
 	if (offset != nullptr) {
 		offset->x = ScaleGUITrad(reference_width) / 2;
+		if (HasBit(this->flags, VRF_REVERSE_DIRECTION)) {
+			offset->x -= (VEHICLE_LENGTH - this->gcache.cached_veh_length) * reference_width / VEHICLE_LENGTH;
+		}
 		offset->y = ScaleGUITrad(vehicle_pitch);
 	}
 	return ScaleGUITrad(this->gcache.cached_veh_length * reference_width / VEHICLE_LENGTH);
@@ -473,7 +501,7 @@ void Train::GetImage(Direction direction, EngineImageType image_type, VehicleSpr
 {
 	uint8 spritenum = this->spritenum;
 
-	if (HasBit(this->flags, VRF_REVERSE_DIRECTION)) direction = ReverseDir(direction);
+	if (HasBit(this->flags, VRF_REVERSE_DIRECTION) && !this->IsMultiheaded()) direction = ReverseDir(direction);
 
 	if (is_custom_sprite(spritenum)) {
 		GetCustomVehicleSprite(this, (Direction)(direction + 4 * IS_CUSTOM_SECONDHEAD_SPRITE(spritenum)), image_type, result);
@@ -1428,6 +1456,8 @@ CommandCost CmdSellRailWagon(DoCommandFlag flags, Vehicle *t, uint16 data, uint3
 
 void Train::UpdateDeltaXY()
 {
+	if (HasBit(this->flags, VRF_REVERSE_DIRECTION)) direction = ReverseDir(direction);
+
 	/* Set common defaults. */
 	this->x_offs    = -1;
 	this->y_offs    = -1;
@@ -1550,6 +1580,8 @@ static void UpdateStatusAfterSwap(Train *v)
 {
 	/* Reverse the direction. */
 	if (v->track != TRACK_BIT_DEPOT) v->direction = ReverseDir(v->direction);
+	
+	ToggleBit(v->flags, VRF_REVERSE_DIRECTION);
 
 	/* Call the proper EnterTile function unless we are in a wormhole. */
 	if (v->track != TRACK_BIT_WORMHOLE) {
@@ -1617,6 +1649,108 @@ void ReverseTrainSwapVeh(Train *v, int l, int r)
 		SwapTrainFlags(&a->gv_flags, &a->gv_flags);
 		UpdateStatusAfterSwap(a);
 	}
+}
+
+void ReverseTrainMultiheaded(Train *v)
+{
+	for (Train *t = v; t != nullptr; t = t->Next()) {
+		if (t->IsMultiheaded()) {
+			if (t->IsEngine()) {
+				t->ClearEngine();
+				Swap(t->spritenum, t->other_multiheaded_part->spritenum);
+			} else {
+				t->SetEngine();
+			}
+		}
+	}
+}
+
+void ReverseTrainArticulated(Train *v)
+{
+	for (Train *t = v; t != nullptr; t = t->GetNextVehicle()) {
+		if (t->HasArticulatedPart()) {
+			Train *a = t->GetLastEnginePart();
+			a->ClearArticulatedPart();
+			t->SetArticulatedPart();
+			if (t->IsEngine()) {
+				t->ClearEngine();
+				if (!t->IsPrimaryVehicle()) a->vehstatus &= ~VS_STOPPED;
+				a->SetEngine();
+				a->vehstatus |= VS_STOPPED;
+			}
+			if (t->IsWagon()) {
+				t->ClearWagon();
+				a->SetWagon();
+			}
+			Swap(t->value, a->value);
+			Swap(t->max_age, a->max_age);
+			t = a;
+		}
+	}
+}
+
+static Train *ReverseTrainChain(Train *v)
+{
+	assert(v == v->First());
+
+	Train *new_first = v->Last();
+	Train *tmp = v;
+	Train *tmp2 = nullptr;
+	for (Train *a = v->Next(); a != nullptr; a = a->Next()) {
+		tmp->SetNext(tmp2);
+		tmp2 = tmp;
+		tmp = a;
+	}
+	tmp->SetNext(tmp2);
+
+	return new_first;
+}
+
+static Train *ReverseTrainVeh(Train *v)
+{
+
+	ReverseTrainArticulated(v);
+	ReverseTrainMultiheaded(v);
+
+	Train *new_front = ReverseTrainChain(v);
+	if (new_front->IsEngine()) {
+		new_front->SetFrontEngine();
+	} else {
+		new_front->SetFrontWagon();
+	}
+	for (Train *u = new_front; u != nullptr; u = u->Next()) {
+		SwapTrainFlags(&u->gv_flags, &u->gv_flags);
+		UpdateStatusAfterSwap(u);
+	}
+	
+	if (v == new_front) return v;
+	if (v->orders.list == nullptr && !OrderList::CanAllocateItem()) return new_front;
+	
+	DeleteVehicleOrders(new_front, false, new_front->GetNumOrders() != v->GetNumOrders());
+
+	new_front->orders.list = v->orders.list;
+	new_front->AddToShared(v);
+	
+	if (v->IsFrontEngine()) {
+		v->ClearFrontEngine();
+	}
+	if (v->IsFrontWagon()) {
+		v->ClearFrontWagon();
+	}
+	
+	if (v->vehstatus & VS_STOPPED) {
+		new_front->vehstatus |= VS_STOPPED;
+	} else {
+		new_front->vehstatus &= ~VS_STOPPED;
+		v->vehstatus |= VS_STOPPED;
+	}
+
+	new_front->CopyVehicleConfigAndStatistics(v);
+	ChangeVehicleViewports(v->index, new_front->index);
+	ChangeVehicleViewWindow(v->index, new_front->index);
+	ChangeVehicleNews(v->index, new_front->index);
+	DeleteVehicleOrders(v);
+	return new_front;
 }
 
 /**
@@ -1727,92 +1861,6 @@ static void AdvanceWagonsAfterCouple(Train *v)
 
 
 /**
- * Advances wagons for train reversing, needed for variable length wagons.
- * This one is called before the train is reversed.
- * @param v First vehicle in chain
- */
-static void AdvanceWagonsBeforeSwap(Train *v)
-{
-	Train *base = v;
-	Train *first = base; // first vehicle to move
-	Train *last = v->Last(); // last vehicle to move
-	uint length = CountVehiclesInChain(v);
-
-	while (length > 2) {
-		last = last->Previous();
-		first = first->Next();
-
-		int differential = base->CalcNextVehicleOffset() - last->CalcNextVehicleOffset();
-
-		/* do not update images now
-		 * negative differential will be handled in AdvanceWagonsAfterSwap() */
-		for (int i = 0; i < differential; i++) TrainController(first, last->Next());
-
-		base = first; // == base->Next()
-		length -= 2;
-	}
-}
-
-
-/**
- * Advances wagons for train reversing, needed for variable length wagons.
- * This one is called after the train is reversed.
- * @param v First vehicle in chain
- */
-static void AdvanceWagonsAfterSwap(Train *v)
-{
-	/* first of all, fix the situation when the train was entering a depot */
-	Train *dep = v; // last vehicle in front of just left depot
-	while (dep->Next() != nullptr && (dep->track == TRACK_BIT_DEPOT || dep->Next()->track != TRACK_BIT_DEPOT)) {
-		dep = dep->Next(); // find first vehicle outside of a depot, with next vehicle inside a depot
-	}
-
-	Train *leave = dep->Next(); // first vehicle in a depot we are leaving now
-
-	if (leave != nullptr) {
-		/* 'pull' next wagon out of the depot, so we won't miss it (it could stay in depot forever) */
-		int d = TicksToLeaveDepot(dep);
-
-		if (d <= 0) {
-			leave->vehstatus &= ~VS_HIDDEN; // move it out of the depot
-			leave->track = TrackToTrackBits(GetRailDepotTrack(leave->tile));
-			for (int i = 0; i >= d; i--) TrainController(leave, nullptr); // maybe move it, and maybe let another wagon leave
-		}
-	} else {
-		dep = nullptr; // no vehicle in a depot, so no vehicle leaving a depot
-	}
-
-	Train *base = v;
-	Train *first = base; // first vehicle to move
-	Train *last = v->Last(); // last vehicle to move
-	uint length = CountVehiclesInChain(v);
-
-	/* We have to make sure all wagons that leave a depot because of train reversing are moved correctly
-	 * they have already correct spacing, so we have to make sure they are moved how they should */
-	bool nomove = (dep == nullptr); // If there is no vehicle leaving a depot, limit the number of wagons moved immediately.
-
-	while (length > 2) {
-		/* we reached vehicle (originally) in front of a depot, stop now
-		 * (we would move wagons that are already moved with new wagon length). */
-		if (base == dep) break;
-
-		/* the last wagon was that one leaving a depot, so do not move it anymore */
-		if (last == dep) nomove = true;
-
-		last = last->Previous();
-		first = first->Next();
-
-		int differential = last->CalcNextVehicleOffset() - base->CalcNextVehicleOffset();
-
-		/* do not update images now */
-		for (int i = 0; i < differential; i++) TrainController(first, (nomove ? last->Next() : nullptr));
-
-		base = first; // == base->Next()
-		length -= 2;
-	}
-}
-
-/**
  * Turn a train around.
  * @param v %Train to turn around.
  */
@@ -1828,18 +1876,7 @@ void ReverseTrainDirection(Train *v)
 	/* Check if we were approaching a rail/road-crossing */
 	TileIndex crossing = TrainApproachingCrossingTile(v);
 
-	/* count number of vehicles */
-	int r = CountVehiclesInChain(v) - 1;  // number of vehicles - 1
-
-	AdvanceWagonsBeforeSwap(v);
-
-	/* swap start<>end, start+1<>end-1, ... */
-	int l = 0;
-	do {
-		ReverseTrainSwapVeh(v, l++, r--);
-	} while (l <= r);
-
-	AdvanceWagonsAfterSwap(v);
+	v = ReverseTrainVeh(v);
 
 	if (IsRailDepotTile(v->tile)) {
 		InvalidateWindowData(WC_VEHICLE_DEPOT, v->tile);
@@ -1920,10 +1957,9 @@ CommandCost CmdReverseTrainDirection(TileIndex tile, DoCommandFlag flags, uint32
 	if (p2 != 0) {
 		/* turn a single unit around */
 
-		if (v->IsMultiheaded() || HasBit(EngInfo(v->engine_type)->callback_mask, CBM_VEHICLE_ARTIC_ENGINE)) {
+		if (v->IsMultiheaded()) {
 			return_cmd_error(STR_ERROR_CAN_T_REVERSE_DIRECTION_RAIL_VEHICLE_MULTIPLE_UNITS);
 		}
-		if (!HasBit(EngInfo(v->engine_type)->misc_flags, EF_RAIL_FLIPS)) return CMD_ERROR;
 
 		Train *front = v->First();
 		/* make sure the vehicle is stopped in the depot */
@@ -1932,7 +1968,15 @@ CommandCost CmdReverseTrainDirection(TileIndex tile, DoCommandFlag flags, uint32
 		}
 
 		if (flags & DC_EXEC) {
-			ToggleBit(v->flags, VRF_REVERSE_DIRECTION);
+			if (v->HasArticulatedPart()) {
+				Train *a = v->GetLastEnginePart();
+				Swap(a->engine_type, v->engine_type);
+			}
+			Train *t = v;
+			do {
+				ToggleBit(t->flags, VRF_REVERSE_DIRECTION);
+				t = t->Next();
+			} while (t != nullptr && t->IsArticulatedPart());
 
 			front->ConsistChanged(CCF_ARRANGE);
 			SetWindowDirty(WC_VEHICLE_DEPOT, front->tile);
@@ -3613,7 +3657,7 @@ reverse_train_direction:
 		v->wait_counter = 0;
 		v->cur_speed = 0;
 		v->subspeed = 0;
-		ReverseTrainDirection(v);
+		SetBit(v->flags, VRF_REVERSING);
 	}
 
 	return false;
@@ -3820,7 +3864,7 @@ static bool TrainApproachingLineEnd(Train *v, bool signal, bool reverse)
 	if (!signal && x + (v->gcache.cached_veh_length + 1) / 2 * (IsDiagonalDirection(v->direction) ? 1 : 2) >= TILE_SIZE) {
 		/* we are too near the tile end, reverse now */
 		v->cur_speed = 0;
-		if (reverse) ReverseTrainDirection(v);
+		if (reverse) SetBit(v->flags, VRF_REVERSING);
 		return false;
 	}
 
@@ -3977,10 +4021,13 @@ static void Couple(Train *v, Train *u, bool train_u_reversed)
 {
 	if (train_u_reversed) {
 		ReverseTrainDirection(u);
+		/* Reverse swap first and last vehicle */
+		u = u->First();
 	}
 	v->IncrementImplicitOrderIndex();
 	ProcessOrders(v);
 	ReverseTrainDirection(v);
+	v = v->First();
 
 	Train *v_last = v->Last();
 	
@@ -4046,10 +4093,10 @@ static Train *GetCouplePosition(Train *v, bool &reverse)
 	
 	/* If we are goint to reverse, we need the longer distance to not crash. 
 	 * Front vehicle always reverse */
-	uint8 v_max_length = max(v->Last()->gcache.cached_veh_length, v->gcache.cached_veh_length);
-	uint8 u_max_length = reverse ? max(u->gcache.cached_veh_length, u->Last()->gcache.cached_veh_length) : u->gcache.cached_veh_length;
+	uint8 v_length = v->gcache.cached_veh_length;
+	uint8 u_length = reverse ? u->Last()->gcache.cached_veh_length : u->gcache.cached_veh_length;
 	
-	if (diff == ((v_max_length + 1) / 2 + (u_max_length + 1) / 2)) {
+	if (diff == ((v_length + 1) / 2 + (u_length + 1) / 2)) {
 		return u;
 	}
 	
@@ -4081,7 +4128,9 @@ static bool TrainLocoHandler(Train *v, bool mode)
 	if (v->HandleBreakdown()) return true;
 
 	if (HasBit(v->flags, VRF_REVERSING) && v->cur_speed == 0) {
+		if (!mode) return true;
 		ReverseTrainDirection(v);
+		return true;
 	}
 
 	/* exit if train is stopped */
@@ -4093,7 +4142,7 @@ static bool TrainLocoHandler(Train *v, bool mode)
 		v->cur_speed = 0;
 		v->subspeed = 0;
 		ClrBit(v->flags, VRF_LEAVING_STATION);
-		ReverseTrainDirection(v);
+		SetBit(v->flags, VRF_REVERSING);
 		return true;
 	} else if (HasBit(v->flags, VRF_LEAVING_STATION)) {
 		/* Try to reserve a path when leaving the station as we
@@ -4132,7 +4181,10 @@ static bool TrainLocoHandler(Train *v, bool mode)
 		if (!turn_around && v->wait_counter % _settings_game.pf.path_backoff_interval != 0 && v->force_proceed == TFP_NONE) return true;
 		if (!TryPathReserve(v)) {
 			/* Still stuck. */
-			if (turn_around) ReverseTrainDirection(v);
+			if (turn_around) {
+				SetBit(v->flags, VRF_REVERSING);
+				return true;
+			}
 
 			if (HasBit(v->flags, VRF_TRAIN_STUCK) && v->wait_counter > 2 * _settings_game.pf.wait_for_pbs_path * DAY_TICKS) {
 				/* Show message to player. */
