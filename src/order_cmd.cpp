@@ -127,6 +127,15 @@ void Order::MakeLeaveStation()
 }
 
 /**
+ * Makes this order a Decouple order.
+ */
+void Order::MakeDecouple()
+{
+	this->type = OT_DECOUPLE;
+	this->flags = 0;
+}
+
+/**
  * Makes this order a Go To Couple order.
  */
 void Order::MakeGoToCouple()
@@ -431,7 +440,7 @@ const Order *OrderList::GetNextDecisionNode(const Order *next, uint hops) const
  * @pre The vehicle is currently loading and v->last_station_visited is meaningful.
  * @note This function may draw a random number. Don't use it from the GUI.
  */
-StationIDStack OrderList::GetNextStoppingStation(const Vehicle *v, const Order *first, uint hops) const
+OrderIDStack OrderList::GetNextStoppingOrder(const Vehicle *v, const Order *first, uint hops) const
 {
 
 	const Order *next = first;
@@ -464,8 +473,8 @@ StationIDStack OrderList::GetNextStoppingStation(const Vehicle *v, const Order *
 			} else if (skip_to == nullptr || skip_to == first) {
 				next = (advance == first) ? nullptr : advance;
 			} else {
-				StationIDStack st1 = this->GetNextStoppingStation(v, skip_to, hops);
-				StationIDStack st2 = this->GetNextStoppingStation(v, advance, hops);
+				StationIDStack st1 = this->GetNextStoppingOrder(v, skip_to, hops);
+				StationIDStack st2 = this->GetNextStoppingOrder(v, advance, hops);
 				while (!st2.IsEmpty()) st1.Push(st2.Pop());
 				return st1;
 			}
@@ -480,7 +489,15 @@ StationIDStack OrderList::GetNextStoppingStation(const Vehicle *v, const Order *
 		}
 	} while (next->IsType(OT_GOTO_DEPOT) || next->GetDestination() == v->last_station_visited);
 
-	return next->GetDestination();
+	return next->index/*->GetDestination()*/;
+}
+
+StationIDStack OrderList::GetNextStoppingStation(const Vehicle *v) const
+{
+	OrderIDStack order_stack = GetNextStoppingOrder(v);
+	StationIDStack ret;
+	while (!order_stack.IsEmpty()) ret.Push(Order::Get(order_stack.Pop())->GetDestination());
+	return ret;
 }
 
 /**
@@ -925,6 +942,11 @@ CommandCost CmdInsertOrder(TileIndex tile, DoCommandFlag flags, uint32 p1, uint3
 		}
 		
 		case OT_WAIT_COUPLE: {
+			break;
+		}
+		
+		case OT_DECOUPLE: {
+			// TODO check for previous order to be station with decouple
 			break;
 		}
 
@@ -1516,13 +1538,25 @@ CommandCost CmdModifyOrder(TileIndex tile, DoCommandFlag flags, uint32 p1, uint3
 				order->SetConditionSkipToOrder(data);
 				break;
 				
-			case MOF_DECOUPLE:
-				order->SetDecouple(data);
-				break;
-				
-			case MOF_DECOUPLE_VALUE:
-				order->SetDecouple(ODF_DECOUPLE);
+			case MOF_DECOUPLE_VALUE: {
 				order->SetNumDecouple(data);
+				data = ODF_DECOUPLE;
+			}
+				FALLTHROUGH;
+			case MOF_DECOUPLE: {
+				OrderDecoupleFlags decouple_flags = order->GetDecouple();
+				order->SetDecouple(data);
+				if (decouple_flags == ODF_DECOUPLE && order->GetDecouple() == ODF_NOTHING) {
+					//DoCommand(tile, v->index, sel_ord + 1, DC_EXEC, CMD_DELETE_ORDER);
+				}
+				if (decouple_flags == ODF_NOTHING && order->GetDecouple() == ODF_DECOUPLE) {
+					/*Order new_order;
+					new_order.next = NULL;
+					new_order.index = 0;
+					new_order.MakeDecouple();
+					DoCommand(tile, v->index + ((sel_ord + 1) << 20), new_order.Pack(), DC_EXEC, CMD_INSERT_ORDER);*/
+				}
+			}
 				break;
 				
 			case MOF_COUPLE_LOAD:

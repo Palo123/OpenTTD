@@ -387,6 +387,10 @@ void DrawOrderString(const Vehicle *v, const Order *order, int order_index, int 
 		case OT_WAIT_COUPLE:
 			SetDParam(0, STR_ORDER_WAIT_FOR_COUPLE);
 			break;
+			
+		case OT_DECOUPLE:
+			SetDParam(0, STR_EMPTY);
+			break;
 
 		default: NOT_REACHED();
 	}

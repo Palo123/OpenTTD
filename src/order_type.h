@@ -11,6 +11,7 @@
 #define ORDER_TYPE_H
 
 #include "core/enum_type.hpp"
+#include "core/smallstack_type.hpp"
 
 typedef byte VehicleOrderID;  ///< The index of an order within its current vehicle (not pool related)
 typedef uint32 OrderID;
@@ -24,6 +25,8 @@ static const VehicleOrderID MAX_VEH_ORDER_ID     = INVALID_VEH_ORDER_ID - 1;
 
 /** Invalid order (sentinel) */
 static const OrderID INVALID_ORDER = 0xFFFFFF;
+
+typedef SmallStack<OrderID, OrderID, INVALID_ORDER, 8, 0xFFFD> OrderIDStack;
 
 /**
  * Maximum number of orders in implicit-only lists before we start searching
@@ -45,6 +48,7 @@ enum OrderType : byte {
 	OT_IMPLICIT      = 8,
 	OT_GOTO_COUPLE   = 9,
 	OT_WAIT_COUPLE   = 10,
+	OT_DECOUPLE      = 11,
 	OT_END
 };
 

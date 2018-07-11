@@ -74,6 +74,7 @@ public:
 	void MakeGoToWaypoint(StationID destination);
 	void MakeLoading(bool ordered);
 	void MakeLeaveStation();
+	void MakeDecouple();
 	void MakeGoToCouple();
 	void MakeWaitCouple();
 	void MakeDummy();
@@ -156,7 +157,7 @@ public:
 	/** Get the value to base the skip on. */
 	inline uint16 GetConditionValue() const { return GB(this->dest, 0, 11); }
 	/** Are we going to decouple? */
-	inline uint8 GetDecouple() const { return GB(this->decouple_flags, 0, 1); }
+	inline OrderDecoupleFlags GetDecouple() const { return (OrderDecoupleFlags)GB(this->decouple_flags, 0, 1); }
 	/** How many wagons are we keeping */
 	inline uint8 GetNumDecouple() const { return GB(this->decouple_flags, 1, 7); }
 	/** What kind of train are we looking for */
@@ -346,7 +347,8 @@ public:
 	 */
 	inline VehicleOrderID GetNumManualOrders() const { return this->num_manual_orders; }
 
-	StationIDStack GetNextStoppingStation(const Vehicle *v, const Order *first = nullptr, uint hops = 0) const;
+	OrderIDStack GetNextStoppingOrder(const Vehicle *v, const Order *first = nullptr, uint hops = 0) const;
+	StationIDStack GetNextStoppingStation(const Vehicle *v) const;
 	const Order *GetNextDecisionNode(const Order *next, uint hops) const;
 
 	void InsertOrderAt(Order *new_order, int index);
