@@ -377,7 +377,7 @@ struct CargoTypesWindow : public Window {
 			case WID_VCT_SET: // set button
 				if (this->sel != CT_COUPLE_ANY_CARGO) {
 					const Vehicle *v = Vehicle::Get(this->window_number);
-					if (DoCommandP(v->tile, v->index + (this->order << 20), MOF_COUPLE_CARGO | (sel << 4), CMD_MODIFY_ORDER | CMD_MSG(STR_ERROR_CAN_T_MODIFY_THIS_ORDER))) delete this;
+					if (DoCommandP(v->tile, v->index + (this->order << 20), MOF_COUPLE_CARGO | (sel << 8), CMD_MODIFY_ORDER | CMD_MSG(STR_ERROR_CAN_T_MODIFY_THIS_ORDER))) delete this;
 				}
 				break;
 		}

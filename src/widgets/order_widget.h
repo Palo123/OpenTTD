@@ -41,6 +41,9 @@ enum OrderWidgets {
 	WID_O_COUPLE_LOAD,               ///< Select couple load.
 	WID_O_COUPLE_CARGO,              ///< Select cargotype for coupling
 	WID_O_COUPLE_VALUE,              ///< Select number of units for coupling
+	WID_O_ORDERS_FIRST,              ///< Select orders for first part of decoupled train
+	WID_O_ORDERS_SECOND,             ///< Select orders for second part of decoupled train
+	WID_O_DECOUPLE_REVERSE,          ///< Select directions for trains after decouple
 };
 
 #endif /* WIDGETS_ORDER_WIDGET_H */

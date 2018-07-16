@@ -1674,7 +1674,7 @@ void ReverseTrainArticulated(Train *v)
 			t->SetArticulatedPart();
 			if (t->IsEngine()) {
 				t->ClearEngine();
-				if (!t->IsPrimaryVehicle()) a->vehstatus &= ~VS_STOPPED;
+				if (!t->IsPrimaryVehicle()) t->vehstatus &= ~VS_STOPPED;
 				a->SetEngine();
 				a->vehstatus |= VS_STOPPED;
 			}
@@ -2110,7 +2110,7 @@ static bool CanDecouple(Train *v)
 	if (!TrainFitStation(v)) return false; 
 	if (CountVehiclesInVehicles(v) < 2) return false;
 	if (v->GetNextUnit() == nullptr) return false;
-	if (!TrainCheckIfLineContinuesAfterStation(v)) return false;
+	//if (!TrainCheckIfLineContinuesAfterStation(v)) return false;
 	return true;
 }
 
@@ -2161,15 +2161,88 @@ static bool TryTrainDecouple(Train *v, Train *u)
 	return true;
 }
 
+void InheritWaitForCoupleOrders(Train *v, Train *u)
+{
+	if (!Order::CanAllocateItem(3)) return;
+	
+	Order *station_order = new Order();
+	Order *station_decouple_order = new Order();
+	Order *wait_for_couple_order = new Order();
+	
+
+	station_order->AssignOrder(v->current_order);
+	station_decouple_order->AssignOrder(*v->orders.list->GetOrderAt(v->cur_implicit_order_index + 1));
+	wait_for_couple_order->MakeWaitCouple();
+
+	if (v == u) DeleteVehicleOrders(v, false, true);
+	
+	if (u->orders.list == nullptr && !OrderList::CanAllocateItem()) return;
+
+	InsertOrder(u, station_order, 0);
+	InsertOrder(u, station_decouple_order, 1);
+	InsertOrder(u, wait_for_couple_order, 2);
+
+	OrderIDStack next_station = v->orders.list->GetNextStoppingOrder(v);
+	if (next_station.IsEmpty() || !Order::CanAllocateItem()) return;
+
+	Order *copy_destination = new Order();
+	copy_destination->AssignOrder(*Order::Get(next_station.Pop()));
+	InsertOrder(u, copy_destination, 3);
+}
+
+void SplitOrders(Train *v, Train *u)
+{
+	Order *after_decouple_flags = v->orders.list->GetOrderAt(v->cur_implicit_order_index + 1);
+	assert(after_decouple_flags->GetType() == OT_DECOUPLE);
+
+	OrderDecoupleReverseFlags reverse_flags = after_decouple_flags->GetDecoupleReverseDirection();
+
+	switch (after_decouple_flags->GetDecoupleSecondOrdersType()) {
+		case ODOF_KEEP_ORDERS:
+			u->orders.list = v->orders.list;
+			u->AddToShared(v);
+			break;
+		case ODOF_INHERIT_ORDERS:
+			InheritWaitForCoupleOrders(v, u);
+			break;
+		case ODOF_EMPTY: // no change
+			break;
+		default: NOT_REACHED();
+	}
+	ProcessOrders(u);
+
+	switch (after_decouple_flags->GetDecoupleFirstOrdersType()) {
+		case ODOF_KEEP_ORDERS: // no change
+			break;
+		case ODOF_INHERIT_ORDERS:
+			InheritWaitForCoupleOrders(v, v);
+			break;
+		case ODOF_EMPTY:
+			DeleteVehicleOrders(v, false, true);
+			break;
+		default: NOT_REACHED();
+	}
+	ProcessOrders(v);
+	
+	if (reverse_flags & ODRF_REVERSE_FIRST) {
+		// TODO reverse first;
+		SetBit(v->flags, VRF_REVERSING);
+	}
+	if (reverse_flags & ODRF_REVERSE_SECOND) {
+		// TODO reverse second;
+		SetBit(u->flags, VRF_REVERSING);
+	}
+}
+
 static Train *DecoupleTrain(Train *v)
 {
 	if (!CanDecouple(v)) return v;
-	
+
 	Train *u = GetDecoupleVehicle(v);
 	if (u == nullptr) return v;
-	
+
 	if (!TryTrainDecouple(v, u)) return v;
-	
+
 	if (u->IsEngine()) {
 		u->SetFrontEngine();
 		u->vehstatus &= ~VS_STOPPED;
@@ -2178,25 +2251,15 @@ static Train *DecoupleTrain(Train *v)
 	}
 	SetTrainGroupID(u, DEFAULT_GROUP);
 	GroupStatistics::CountVehicle(v, -1);
-	
+
 	GroupStatistics::CountVehicle(v, 1);
 	GroupStatistics::CountVehicle(u, 1);
-	
+
 	NormaliseTrainHead(u);
 	NormaliseTrainHead(v);
+
+	SplitOrders(v, u);
 	
-	if (u->orders.list == nullptr && !OrderList::CanAllocateItem()) return u;
-	if (Order::CanAllocateItem(3)) {
-		Order *copy = new Order();
-		copy->AssignOrder(v->current_order);
-		InsertOrder(u, copy, 0);
-		Order *wait_for_couple = new Order();
-		wait_for_couple->MakeWaitCouple();
-		InsertOrder(u, wait_for_couple, 1);
-		Order *copy_destination = new Order();
-		copy_destination->AssignOrder(*Order::Get(v->orders.list->GetNextStoppingOrder(v).Pop()));
-		InsertOrder(u, copy_destination, 2);
-	}
 	InvalidateWindowClassesData(WC_TRAINS_LIST, 0);
 	return u;
 }
@@ -3069,18 +3132,18 @@ int Train::UpdateSpeed()
  */
 static void TrainEnterStation(Train *v, StationID station)
 {
-	//v->last_station_visited = station;
+	v->last_station_visited = station;
 	
 	Train *u = nullptr;
-	if (v->current_order.GetDecouple() == ODF_DECOUPLE) {
+	if (v->current_order.GetDestination() == station && v->current_order.GetDecouple() == ODF_DECOUPLE) {
 		u = DecoupleTrain(v);
-		ProcessOrders(u);
+		u->last_station_visited = station;
 	} else {
 		u = v;
 	}
 	
-	v->last_station_visited = station;
-	u->last_station_visited = station;
+	//v->last_station_visited = station;
+	//u->last_station_visited = station;
 	
 	/* check if a train ever visited this station before */
 	Station *st = Station::Get(station);
@@ -3102,9 +3165,12 @@ static void TrainEnterStation(Train *v, StationID station)
 
 	u->BeginLoading();
 	if (v->index != u->index) {
-		v->IncrementImplicitOrderIndex();
-		ProcessOrders(v);
-		MarkTrainAsStuck(v);
+		//v->IncrementImplicitOrderIndex();
+		//ProcessOrders(v);
+		//MarkTrainAsStuck(v);
+		v->force_proceed = TFP_NONE;
+		v->BeginLoading();
+		SetWindowDirty(WC_VEHICLE_VIEW, v->index);
 	}
 
 	TriggerStationRandomisation(st, u->tile, SRT_TRAIN_ARRIVES);

@@ -610,6 +610,7 @@ static CommandCost ReplaceChain(Vehicle **chain, DoCommandFlag flags, bool wagon
 
 				for (int i = num_units - 1; i > 0; i--) {
 					CommandCost ret = CmdMoveVehicle(old_vehs[i], old_head, DC_EXEC | DC_AUTOREPLACE, false);
+					DEBUG(misc, 0, "pocet: %d", i);
 					assert(ret.Succeeded());
 				}
 			}

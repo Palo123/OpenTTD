@@ -84,6 +84,20 @@ enum OrderCoupleFlags {
 	ODC_END      = 3,
 };
 
+enum OrderDecoupleOrdersFlags {
+	ODOF_KEEP_ORDERS    = 0,
+	ODOF_INHERIT_ORDERS = 1,
+	ODOF_EMPTY          = 2,
+	ODOF_END            = 3,
+};
+
+enum OrderDecoupleReverseFlags {
+	ODRF_NO_REVERSE     = 0,
+	ODRF_REVERSE_FIRST  = 1 << 0,
+	ODRF_REVERSE_SECOND = 1 << 1,
+	ODRF_REVERSE_BOTH   = ODRF_REVERSE_FIRST | ODRF_REVERSE_SECOND,
+};
+
 /**
  * Non-stop order flags.
  */
@@ -173,9 +187,12 @@ enum ModifyOrderFlags {
 	MOF_COUPLE_LOAD,     ///< Change load parameters of desired train.
 	MOF_COUPLE_CARGO,    ///< Change cargo parameter for desired train.
 	MOF_COUPLE_VALUE,    ///< Change number of coupled units.
+	MOF_FIRST_ORDERS,    ///< Change orders of first part of train after decoupling.
+	MOF_SECOND_ORDERS,   ///< Change orders of second part of train after decoupling.
+	MOF_DECOUPLE_REVERSE,///< Specify reverse after decoupling.
 	MOF_END
 };
-template <> struct EnumPropsT<ModifyOrderFlags> : MakeEnumPropsT<ModifyOrderFlags, byte, MOF_NON_STOP, MOF_END, MOF_END, 4> {};
+template <> struct EnumPropsT<ModifyOrderFlags> : MakeEnumPropsT<ModifyOrderFlags, byte, MOF_NON_STOP, MOF_END, MOF_END, 8> {};
 
 /**
  * Depot action to switch to when doing a #MOF_DEPOT_ACTION.
