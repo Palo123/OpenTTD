@@ -4229,7 +4229,13 @@ static bool TrainLocoHandler(Train *v, bool mode)
 	v->HandleLoading(mode);
 
 	if (v->current_order.IsType(OT_LOADING)) return true;
-	if (v->current_order.IsType(OT_WAIT_COUPLE)) return true;
+	if (v->current_order.IsType(OT_WAIT_COUPLE)) {
+		if (v->cur_speed > 0) {
+			v->cur_speed = 0;
+			v->subspeed = 0;
+		}
+		return true;
+	}
 
 	if (CheckTrainStayInDepot(v)) return true;
 
@@ -4377,6 +4383,8 @@ bool Train::Tick()
 
 		if (!TrainLocoHandler(this, false)) return false;
 
+		/* We might change chain order during coupling or reversing */
+		if (!this->IsPrimaryVehicle()) return true;
 		return TrainLocoHandler(this, true);
 	} else if (this->IsFreeWagon() && (this->vehstatus & VS_CRASHED)) {
 		/* Delete flooded standalone wagon chain */
