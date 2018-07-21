@@ -1082,6 +1082,8 @@ CommandCost CmdDeleteOrder(TileIndex tile, DoCommandFlag flags, uint32 p1, uint3
 	if (sel_ord >= v->GetNumOrders()) return DecloneOrder(v, flags);
 
 	if (v->GetOrder(sel_ord) == nullptr) return CMD_ERROR;
+	Order *next_order = v->GetOrder(sel_ord + 1);
+	if (next_order != nullptr && next_order->IsType(OT_DECOUPLE)) return CMD_ERROR;
 
 	if (flags & DC_EXEC) DeleteOrder(v, sel_ord);
 	return CommandCost();
@@ -1235,6 +1237,13 @@ CommandCost CmdMoveOrder(TileIndex tile, DoCommandFlag flags, uint32 p1, uint32 
 	Order *moving_one = v->GetOrder(moving_order);
 	/* Don't move an empty order */
 	if (moving_one == nullptr) return CMD_ERROR;
+	if (moving_one->IsType(OT_DECOUPLE)) return CMD_ERROR;
+	
+	Order *after_moving_one = v->GetOrder(moving_order + 1);
+	if (after_moving_one != nullptr && after_moving_one->IsType(OT_DECOUPLE)) return CMD_ERROR;
+	
+	Order *target_one = v->GetOrder(moving_order > target_order ? target_order : target_order + 1);
+	if (target_one != nullptr && target_one->IsType(OT_DECOUPLE)) return CMD_ERROR;
 
 	if (flags & DC_EXEC) {
 		v->orders.list->MoveOrder(moving_order, target_order);

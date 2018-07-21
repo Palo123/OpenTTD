@@ -404,7 +404,12 @@ void DrawOrderString(const Vehicle *v, const Order *order, int order_index, int 
 			break;
 			
 		case OT_DECOUPLE:
+			// always write first and second part and reverse situation -> param 0 string with param -->> 1 2 3
 			SetDParam(0, STR_EMPTY);
+			/*SetDParam(0, STR_ORDER_DECOUPLE_ADVANCED);
+			SetDParam(1, order->GetDecoupleFirstOrdersType());
+			SetDParam(2, order->GetDecoupleSecondOrdersType());
+			SetDParam(3, order->GetDecoupleReverseDirection());*/
 			break;
 
 		default: NOT_REACHED();
@@ -1215,6 +1220,7 @@ public:
 					assert(this->vehicle->type == VEH_TRAIN);
 					train_row_sel->SetDisplayedPlane(DP_GROUNDVEHICLE_ROW_DECOUPLE);
 					this->DisableWidget(WID_O_DECOUPLE);
+					this->DisableWidget(WID_O_DELETE);
 					break;
 				}
 
