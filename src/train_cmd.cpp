@@ -164,6 +164,12 @@ bool Train::ConsistChanged(ConsistChangeFlags allowed_changes)
 		u->InvalidateNewGRFCache();
 	}
 
+	if (allowed_changes & CCF_IMMUTABLE) {
+		for (Train *u = this; u != nullptr; u = u->Next()) {
+			StoreImmutableVariables(u);
+		}
+	}
+
 	for (Train *u = this; u != nullptr; u = u->Next()) {
 		const Engine *e_u = u->GetEngine();
 		const RailVehicleInfo *rvi_u = &e_u->u.rail;
@@ -1152,13 +1158,13 @@ static void ArrangeTrains(Train **dst_head, Train *dst, Train **src_head, Train 
  * we have changed and update all kinds of variables.
  * @param head the train to update.
  */
-static void NormaliseTrainHead(Train *head)
+static void NormaliseTrainHead(Train *head, ConsistChangeFlags allowed_changes)
 {
 	/* Not much to do! */
 	if (head == nullptr) return;
 
 	/* Tell the 'world' the train changed. */
-	head->ConsistChanged(CCF_ARRANGE);
+	head->ConsistChanged(allowed_changes);
 	UpdateTrainGroupID(head);
 
 	/* Not a front engine, i.e. a free wagon chain. No need to do more. */
@@ -1345,8 +1351,8 @@ CommandCost CmdMoveRailVehicle(TileIndex tile, DoCommandFlag flags, uint32 p1, u
 		if (dst_head != nullptr && dst_head->IsPrimaryVehicle()) GroupStatistics::CountVehicle(dst_head, 1);
 
 		/* Handle 'new engine' part of cases #1b, #2b, #3b, #4b and #5 in NormaliseTrainHead. */
-		NormaliseTrainHead(src_head);
-		NormaliseTrainHead(dst_head);
+		NormaliseTrainHead(src_head, CCF_ARRANGE);
+		NormaliseTrainHead(dst_head, CCF_ARRANGE);
 
 		if ((flags & DC_NO_CARGO_CAP_CHECK) == 0) {
 			CheckCargoCapacity(src_head);
@@ -1438,7 +1444,7 @@ CommandCost CmdSellRailWagon(DoCommandFlag flags, Vehicle *t, uint16 data, uint3
 		}
 
 		/* We need to update the information about the train. */
-		NormaliseTrainHead(new_head);
+		NormaliseTrainHead(new_head, CCF_ARRANGE);
 
 		/* We are undoubtedly changing something in the depot and train list. */
 		InvalidateWindowData(WC_VEHICLE_DEPOT, v->tile);
@@ -2155,7 +2161,7 @@ static bool TryTrainDecouple(Train *v, Train *u)
 	if (!ok) {
 		/* Restore the train we had. */
 		RestoreTrainBackup(original_src);		
-		v->ConsistChanged(CCF_ARRANGE);
+		v->ConsistChanged(CCF_ARRANGE_STATION);
 		return false;
 	}
 	return true;
@@ -2255,8 +2261,8 @@ static Train *DecoupleTrain(Train *v)
 	GroupStatistics::CountVehicle(v, 1);
 	GroupStatistics::CountVehicle(u, 1);
 
-	NormaliseTrainHead(u);
-	NormaliseTrainHead(v);
+	NormaliseTrainHead(u, CCF_ARRANGE_STATION);
+	NormaliseTrainHead(v, CCF_ARRANGE_STATION);
 
 	SplitOrders(v, u);
 	
@@ -4079,8 +4085,8 @@ static bool TryTrainCouple(Train *v, Train *u)
 		RestoreTrainBackup(original_src);
 		RestoreTrainBackup(original_dst);
 		
-		v->ConsistChanged(CCF_ARRANGE);
-		u->ConsistChanged(CCF_ARRANGE);
+		v->ConsistChanged(CCF_ARRANGE_STATION);
+		u->ConsistChanged(CCF_ARRANGE_STATION);
 		return false;
 	}
 	return true;
@@ -4129,7 +4135,7 @@ static void Couple(Train *v, Train *u, bool train_u_reversed)
 	u->ClearFrontWagon();
 	u->ClearFrontEngine();
 	
-	NormaliseTrainHead(v);
+	NormaliseTrainHead(v, CCF_ARRANGE_STATION);
 	
 	AdvanceWagonsAfterCouple(v_last);
 	InvalidateWindowClassesData(WC_TRAINS_LIST, 0);

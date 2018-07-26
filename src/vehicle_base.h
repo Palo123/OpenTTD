@@ -518,10 +518,7 @@ public:
 	{
 		assert(this == this->First());
 		/* Free wagons have no VS_STOPPED state */
-		DEBUG(misc, 0, "primary vehicle: %d, vehstatus: %d", this->IsPrimaryVehicle(), this->vehstatus & VS_STOPPED);
 		if (this->IsPrimaryVehicle() && !(this->vehstatus & VS_STOPPED)) return false;
-		DEBUG(misc, 0, "chain in depot: %d", this->IsChainInDepot());
-		DEBUG(misc, 0, "speed: %d", this->cur_speed);
 		return this->IsChainInDepot();
 	}
 

@@ -23,6 +23,8 @@ struct VehicleScopeResolver : public ScopeResolver {
 	const struct Vehicle *v; ///< The vehicle being resolved.
 	EngineID self_type;      ///< Type of the vehicle.
 	bool info_view;          ///< Indicates if the item is being drawn in an info window.
+	bool parent_scope_active;
+	const struct Vehicle *self_v;
 
 	/**
 	 * Scope resolver of a single vehicle.
@@ -31,8 +33,8 @@ struct VehicleScopeResolver : public ScopeResolver {
 	 * @param v %Vehicle being resolved.
 	 * @param info_view Indicates if the item is being drawn in an info window.
 	 */
-	VehicleScopeResolver(ResolverObject &ro, EngineID engine_type, const Vehicle *v, bool info_view)
-		: ScopeResolver(ro), v(v), self_type(engine_type), info_view(info_view)
+	VehicleScopeResolver(ResolverObject &ro, EngineID engine_type, const Vehicle *v, bool info_view, bool parent_scope_active, const Vehicle *self_v)
+		: ScopeResolver(ro), v(v), self_type(engine_type), info_view(info_view), parent_scope_active(parent_scope_active), self_v(self_v)
 	{
 	}
 
@@ -120,6 +122,8 @@ void UnloadWagonOverrides(Engine *e);
 
 void AlterVehicleListOrder(EngineID engine, uint target);
 void CommitVehicleListOrderChanges();
+
+void StoreImmutableVariables(Vehicle *v);
 
 EngineID GetNewEngineID(const GRFFile *file, VehicleType type, uint16 internal_id);
 

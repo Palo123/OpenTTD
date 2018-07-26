@@ -45,13 +45,14 @@ enum ConsistChangeFlags {
 	CCF_LENGTH     = 0x01,     ///< Allow vehicles to change length.
 	CCF_CAPACITY   = 0x02,     ///< Allow vehicles to change capacity.
 	CCF_CHECK_ONLY = 0x04,     ///< Run this only as a check.
+	CCF_IMMUTABLE  = 0x08,     ///> Allow vehicles to change immutable properties.
 
 	CCF_TRACK      = 0,                          ///< Valid changes while vehicle is driving, and possibly changing tracks.
 	CCF_LOADUNLOAD = 0,                          ///< Valid changes while vehicle is loading/unloading.
 	CCF_AUTOREFIT  = CCF_CAPACITY,               ///< Valid changes for autorefitting in stations.
 	CCF_ARRANGE_STATION = CCF_CAPACITY,          ///< Valid changes for arranging the consist in a station.
 	CCF_REFIT      = CCF_LENGTH | CCF_CAPACITY,  ///< Valid changes for refitting in a depot.
-	CCF_ARRANGE    = CCF_LENGTH | CCF_CAPACITY,  ///< Valid changes for arranging the consist in a depot.
+	CCF_ARRANGE    = CCF_LENGTH | CCF_CAPACITY | CCF_IMMUTABLE,  ///< Valid changes for arranging the consist in a depot.
 	CCF_SAVELOAD   = CCF_LENGTH,                 ///< Valid changes when loading a savegame. (Everything that is not stored in the save.)
 	CCF_ARRANGE_CHECK = CCF_CAPACITY | CCF_CHECK_ONLY, ///< Check for valid changes for arranging the consist in a station.
 };
@@ -89,6 +90,9 @@ struct TrainCache {
  */
 struct Train FINAL : public GroundVehicle<Train, VEH_TRAIN> {
 	TrainCache tcache;
+
+	uint32 parent_local_id;
+	uint32 parent_cargo_subtype;
 
 	/* Link between the two ends of a multiheaded engine */
 	Train *other_multiheaded_part;
