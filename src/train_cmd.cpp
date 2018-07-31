@@ -208,7 +208,7 @@ bool Train::ConsistChanged(ConsistChangeFlags allowed_changes)
 				u->compatible_railtypes |= RAILTYPES_RAIL;
 			}
 
-			const Train *t = this->GetMainArticulatedPart();
+			const Train *t = u->GetMainArticulatedPart();
 			/* max speed is the minimum of the speed limits of all vehicles in the consist */
 			if ((t->GetEngine()->u.rail.railveh_type != RAILVEH_WAGON || _settings_game.vehicle.wagon_speed_limits) && !UsesWagonOverride(t)) {
 				//const Train *t = this->GetMainArticulatedPart();
