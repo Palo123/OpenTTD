@@ -3965,14 +3965,9 @@ STR_ORDERS_COUPLE_LOAD_FULL                                     :Couple full
 STR_ORDERS_DECOUPLE_FIRST_KEEP_ORDERS_BUTTON                    :{BLACK}First: Keep orders
 STR_ORDERS_DECOUPLE_SECOND_KEEP_ORDERS_BUTTON                   :{BLACK}Second: Keep orders
 STR_ORDERS_DECOUPLE_KEEP_ORDERS                                 :Keep orders
-STR_ORDERS_DECOUPLE_INHERIT_ORDERS                              :Wait for couple
-STR_ORDERS_DECOUPLE_EMPTY                                       :Empty orders
-
-STR_ORDERS_REVERSE_BUTTON                                       :{BLACK}No reverse
-STR_ORDERS_NOREVERSE                                            :No reverse
-STR_ORDERS_REVERSE_FIRST                                        :Reverse first
-STR_ORDERS_REVERSE_SECOND                                       :Reverse second
-STR_ORDERS_REVERSE_BOTH                                         :Reverse both
+STR_ORDERS_DECOUPLE_KEEP_ORDERS_NO_LOAD                         :Keep and no loading
+STR_ORDERS_DECOUPLE_INHERIT_ORDERS                              :Inherit
+STR_ORDERS_DECOUPLE_WAIT_FOR_COUPLE                             :Wait for couple
 
 STR_ORDER_CONDITIONAL_VARIABLE_TOOLTIP                          :{BLACK}Vehicle data to base jumping on
 
