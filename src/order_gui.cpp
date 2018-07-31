@@ -896,11 +896,6 @@ private:
 		DoCommandP(this->vehicle->tile, this->vehicle->index + (this->OrderGetSel() << 20), MOF_SECOND_ORDERS | (orders_type << 8), CMD_MODIFY_ORDER | CMD_MSG(STR_ERROR_CAN_T_MODIFY_THIS_ORDER));
 	}
 
-	void OrderClick_DecoupleReverse(int directions)
-	{
-		DoCommandP(this->vehicle->tile, this->vehicle->index + (this->OrderGetSel() << 20), MOF_DECOUPLE_REVERSE | (directions << 8), CMD_MODIFY_ORDER | CMD_MSG(STR_ERROR_CAN_T_MODIFY_THIS_ORDER));
-	}
-
 	/** Cache auto-refittability of the vehicle chain. */
 	void UpdateAutoRefitState()
 	{
@@ -1543,15 +1538,6 @@ public:
 					ShowDropDownMenu(this, _order_decouple_orders_drowdown, 0, WID_O_ORDERS_SECOND, 0, 0);
 				}
 				break;
-
-			case WID_O_DECOUPLE_REVERSE:
-				if (this->GetWidget<NWidgetLeaf>(widget)->ButtonHit(pt)) {
-					OrderClick_DecoupleReverse(0);
-				} else {
-					ShowDropDownMenu(this, _order_decouple_reverse_drowdown, 0, WID_O_DECOUPLE_REVERSE, 0, 0);
-				}
-				break;
-
 		}
 	}
 
@@ -1648,11 +1634,6 @@ public:
 			case WID_O_ORDERS_SECOND:
 				OrderClick_OrdersSecond(index);
 				break;
-
-			case WID_O_DECOUPLE_REVERSE:
-				OrderClick_DecoupleReverse(index);
-				break;
-
 		}
 	}
 
@@ -1859,7 +1840,7 @@ static const NWidgetPart _nested_orders_train_widgets[] = {
 															SetDataTip(STR_ORDERS_DECOUPLE_FIRST_KEEP_ORDERS_BUTTON, STR_ORDER_CONDITIONAL_VARIABLE_TOOLTIP), SetResize(1, 0),
 				NWidget(NWID_BUTTON_DROPDOWN, COLOUR_GREY, WID_O_ORDERS_SECOND), SetMinimalSize(124, 12), SetFill(1, 0),
 															SetDataTip(STR_ORDERS_DECOUPLE_SECOND_KEEP_ORDERS_BUTTON, STR_ORDER_CONDITIONAL_COMPARATOR_TOOLTIP), SetResize(1, 0),
-				NWidget(NWID_BUTTON_DROPDOWN, COLOUR_GREY, WID_O_DECOUPLE_REVERSE), SetMinimalSize(124, 12), SetFill(1, 0),
+				NWidget(NWID_BUTTON_DROPDOWN, COLOUR_GREY, WID_O_ORDERS_SECOND), SetMinimalSize(124, 12), SetFill(1, 0),
 															SetDataTip(STR_ORDERS_REVERSE_BUTTON, STR_ORDER_CONDITIONAL_VALUE_TOOLTIP), SetResize(1, 0),
 			EndContainer(),
 		EndContainer(),

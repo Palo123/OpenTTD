@@ -2212,9 +2212,8 @@ void SplitOrders(Train *v, Train *u)
 	Order *after_decouple_flags = v->orders.list->GetOrderAt(v->cur_implicit_order_index + 1);
 	assert(after_decouple_flags->GetType() == OT_DECOUPLE);
 
-	OrderDecoupleReverseFlags reverse_flags = after_decouple_flags->GetDecoupleReverseDirection();
-
 	switch (after_decouple_flags->GetDecoupleSecondOrdersType()) {
+		case ODOF_KEEP_ORDERS_NO_LOAD:
 		case ODOF_KEEP_ORDERS:
 			u->orders.list = v->orders.list;
 			u->AddToShared(v);
@@ -2222,33 +2221,25 @@ void SplitOrders(Train *v, Train *u)
 		case ODOF_INHERIT_ORDERS:
 			InheritWaitForCoupleOrders(v, u);
 			break;
-		case ODOF_EMPTY: // no change
+		case ODOF_WAIT_FOR_COUPLE: // TODO wait_for_couple
 			break;
 		default: NOT_REACHED();
 	}
 	ProcessOrders(u);
 
 	switch (after_decouple_flags->GetDecoupleFirstOrdersType()) {
+		case ODOF_KEEP_ORDERS_NO_LOAD:
 		case ODOF_KEEP_ORDERS: // no change
 			break;
 		case ODOF_INHERIT_ORDERS:
 			InheritWaitForCoupleOrders(v, v);
 			break;
-		case ODOF_EMPTY:
+		case ODOF_WAIT_FOR_COUPLE: // TODO wait_for_couple
 			DeleteVehicleOrders(v, false, true);
 			break;
 		default: NOT_REACHED();
 	}
 	ProcessOrders(v);
-	
-	if (reverse_flags & ODRF_REVERSE_FIRST) {
-		// TODO reverse first;
-		SetBit(v->flags, VRF_REVERSING);
-	}
-	if (reverse_flags & ODRF_REVERSE_SECOND) {
-		// TODO reverse second;
-		SetBit(u->flags, VRF_REVERSING);
-	}
 }
 
 static Train *DecoupleTrain(Train *v)

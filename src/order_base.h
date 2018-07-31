@@ -168,8 +168,6 @@ public:
 	inline OrderDecoupleOrdersFlags GetDecoupleFirstOrdersType() const { return (OrderDecoupleOrdersFlags)GB(this->flags, 0, 3); }
 	/** What orders should second part get */
 	inline OrderDecoupleOrdersFlags GetDecoupleSecondOrdersType() const { return (OrderDecoupleOrdersFlags)GB(this->flags, 4, 3); }
-	/** What direction to go after decouple? */
-	inline OrderDecoupleReverseFlags GetDecoupleReverseDirection() const { return (OrderDecoupleReverseFlags)GB(this->type, 4, 2); }
 
 	/** Set how the consist must be loaded. */
 	inline void SetLoadType(OrderLoadFlags load_type) { SB(this->flags, 4, 3, load_type); }
@@ -203,8 +201,6 @@ public:
 	inline void SetDecoupleFirstOrdersType(OrderDecoupleOrdersFlags orders_type) { SB(this->flags, 0, 3, orders_type); }
 	/** Set what orders should second part get */
 	inline void SetDecoupleSecondOrdersType(OrderDecoupleOrdersFlags orders_type) { SB(this->flags, 4, 3, orders_type); }
-	/** Set directions to go after decouple */
-	inline void SetDecoupleReverseDirection(OrderDecoupleReverseFlags reverse_directions) { SB(this->type, 4, 2, reverse_directions); }
 
 
 	/* As conditional orders write their "skip to" order all over the flags, we cannot check the

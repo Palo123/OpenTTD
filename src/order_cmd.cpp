@@ -1370,7 +1370,7 @@ CommandCost CmdModifyOrder(TileIndex tile, DoCommandFlag flags, uint32 p1, uint3
 			break;
 
 		case OT_DECOUPLE:
-			if (mof != MOF_FIRST_ORDERS && mof != MOF_SECOND_ORDERS && mof != MOF_DECOUPLE_REVERSE) return CMD_ERROR;
+			if (mof != MOF_FIRST_ORDERS && mof != MOF_SECOND_ORDERS) return CMD_ERROR;
 			break;
 
 		default:
@@ -1379,10 +1379,6 @@ CommandCost CmdModifyOrder(TileIndex tile, DoCommandFlag flags, uint32 p1, uint3
 
 	switch (mof) {
 		default: NOT_REACHED();
-
-		case MOF_DECOUPLE_REVERSE:
-			if (v->type != VEH_TRAIN) return CMD_ERROR;
-			break;
 
 		case MOF_SECOND_ORDERS:
 		case MOF_FIRST_ORDERS:
@@ -1610,10 +1606,6 @@ CommandCost CmdModifyOrder(TileIndex tile, DoCommandFlag flags, uint32 p1, uint3
 
 			case MOF_SECOND_ORDERS:
 				order->SetDecoupleSecondOrdersType((OrderDecoupleOrdersFlags)data);
-				break;
-
-			case MOF_DECOUPLE_REVERSE:
-				order->SetDecoupleReverseDirection((OrderDecoupleReverseFlags)data);
 				break;
 
 			default: NOT_REACHED();
