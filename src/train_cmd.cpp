@@ -2207,6 +2207,16 @@ void InheritWaitForCoupleOrders(Train *v, Train *u)
 	InsertOrder(u, copy_destination, 3);
 }
 
+void CreateWaitForCoupleOrder(Train *v)
+{
+	if (v->orders.list == NULL && !OrderList::CanAllocateItem()) return;
+	if (!Order::CanAllocateItem()) return;
+
+	Order *wait_for_couple_order = new Order();
+	wait_for_couple_order->MakeWaitCouple();
+	InsertOrder(v, wait_for_couple_order, 0);
+}
+
 enum DecoupleLoad {
 	DECOUPLE_NO_LOAD     = 0,
 	DECOUPLE_LOAD_FIRST  = 1,
@@ -2224,7 +2234,7 @@ void SplitOrders(Train *v, Train *u, DecoupleLoad &load_trains)
 		case ODOF_KEEP_ORDERS:
 			load_trains |= DECOUPLE_LOAD_SECOND;
 			FALLTHROUGH;
-		case ODOF_KEEP_ORDERS_NO_LOAD: // TODO is order index copied?
+		case ODOF_KEEP_ORDERS_NO_LOAD: // TODO copy order index
 			u->orders.list = v->orders.list;
 			u->AddToShared(v);
 			break;
@@ -2232,7 +2242,8 @@ void SplitOrders(Train *v, Train *u, DecoupleLoad &load_trains)
 			load_trains |= DECOUPLE_LOAD_SECOND;
 			InheritWaitForCoupleOrders(v, u);
 			break;
-		case ODOF_WAIT_FOR_COUPLE: // TODO wait_for_couple
+		case ODOF_WAIT_FOR_COUPLE:
+			CreateWaitForCoupleOrder(u);
 			break;
 		default: NOT_REACHED();
 	}
@@ -2248,8 +2259,9 @@ void SplitOrders(Train *v, Train *u, DecoupleLoad &load_trains)
 			load_trains |= DECOUPLE_LOAD_FIRST;
 			InheritWaitForCoupleOrders(v, v);
 			break;
-		case ODOF_WAIT_FOR_COUPLE: // TODO wait_for_couple
+		case ODOF_WAIT_FOR_COUPLE:
 			DeleteVehicleOrders(v, false, true);
+			CreateWaitForCoupleOrder(v);
 			break;
 		default: NOT_REACHED();
 	}
