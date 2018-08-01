@@ -2207,18 +2207,29 @@ void InheritWaitForCoupleOrders(Train *v, Train *u)
 	InsertOrder(u, copy_destination, 3);
 }
 
-void SplitOrders(Train *v, Train *u)
+enum DecoupleLoad {
+	DECOUPLE_NO_LOAD     = 0,
+	DECOUPLE_LOAD_FIRST  = 1,
+	DECOUPLE_LOAD_SECOND = 1 << 1,
+	DECOUPLE_LOAD_BOTH   = DECOUPLE_LOAD_FIRST | DECOUPLE_LOAD_SECOND,
+};
+DECLARE_ENUM_AS_BIT_SET(DecoupleLoad)
+
+void SplitOrders(Train *v, Train *u, DecoupleLoad &load_trains)
 {
 	Order *after_decouple_flags = v->orders.list->GetOrderAt(v->cur_implicit_order_index + 1);
 	assert(after_decouple_flags->GetType() == OT_DECOUPLE);
 
 	switch (after_decouple_flags->GetDecoupleSecondOrdersType()) {
-		case ODOF_KEEP_ORDERS_NO_LOAD:
 		case ODOF_KEEP_ORDERS:
+			load_trains |= DECOUPLE_LOAD_FIRST;
+			FALLTHROUGH;
+		case ODOF_KEEP_ORDERS_NO_LOAD:
 			u->orders.list = v->orders.list;
 			u->AddToShared(v);
 			break;
 		case ODOF_INHERIT_ORDERS:
+			load_trains |= DECOUPLE_LOAD_FIRST;
 			InheritWaitForCoupleOrders(v, u);
 			break;
 		case ODOF_WAIT_FOR_COUPLE: // TODO wait_for_couple
@@ -2228,10 +2239,13 @@ void SplitOrders(Train *v, Train *u)
 	ProcessOrders(u);
 
 	switch (after_decouple_flags->GetDecoupleFirstOrdersType()) {
-		case ODOF_KEEP_ORDERS_NO_LOAD:
-		case ODOF_KEEP_ORDERS: // no change
+		case ODOF_KEEP_ORDERS:
+			load_trains |= DECOUPLE_LOAD_SECOND;
+			FALLTHROUGH;
+		case ODOF_KEEP_ORDERS_NO_LOAD: // no change
 			break;
 		case ODOF_INHERIT_ORDERS:
+			load_trains |= DECOUPLE_LOAD_SECOND;
 			InheritWaitForCoupleOrders(v, v);
 			break;
 		case ODOF_WAIT_FOR_COUPLE: // TODO wait_for_couple
@@ -2242,7 +2256,7 @@ void SplitOrders(Train *v, Train *u)
 	ProcessOrders(v);
 }
 
-static Train *DecoupleTrain(Train *v)
+static Train *DecoupleTrain(Train *v, DecoupleLoad &load_trains)
 {
 	if (!CanDecouple(v)) return v;
 
@@ -2266,7 +2280,7 @@ static Train *DecoupleTrain(Train *v)
 	NormaliseTrainHead(u, CCF_ARRANGE_STATION);
 	NormaliseTrainHead(v, CCF_ARRANGE_STATION);
 
-	SplitOrders(v, u);
+	SplitOrders(v, u, load_trains);
 	
 	InvalidateWindowClassesData(WC_TRAINS_LIST, 0);
 	return u;
@@ -3143,16 +3157,14 @@ static void TrainEnterStation(Train *v, StationID station)
 	v->last_station_visited = station;
 	
 	Train *u = nullptr;
+	DecoupleLoad load_trains = DECOUPLE_NO_LOAD;
 	if (v->current_order.GetDestination() == station && v->current_order.GetDecouple() == ODF_DECOUPLE) {
-		u = DecoupleTrain(v);
+		u = DecoupleTrain(v, load_trains);
 		u->last_station_visited = station;
 	} else {
-		u = v;
+		load_trains = DECOUPLE_LOAD_FIRST;
 	}
-	
-	//v->last_station_visited = station;
-	//u->last_station_visited = station;
-	
+
 	/* check if a train ever visited this station before */
 	Station *st = Station::Get(station);
 	if (!(st->had_vehicle_of_type & HVOT_TRAIN)) {
@@ -3160,29 +3172,31 @@ static void TrainEnterStation(Train *v, StationID station)
 		SetDParam(0, st->index);
 		AddVehicleNewsItem(
 			STR_NEWS_FIRST_TRAIN_ARRIVAL,
-			u->owner == _local_company ? NT_ARRIVAL_COMPANY : NT_ARRIVAL_OTHER,
-			u->index,
+			v->owner == _local_company ? NT_ARRIVAL_COMPANY : NT_ARRIVAL_OTHER,
+			v->index,
 			st->index
 		);
-		AI::NewEvent(u->owner, new ScriptEventStationFirstVehicle(st->index, u->index));
-		Game::NewEvent(new ScriptEventStationFirstVehicle(st->index, u->index));
+		AI::NewEvent(v->owner, new ScriptEventStationFirstVehicle(st->index, v->index));
+		Game::NewEvent(new ScriptEventStationFirstVehicle(st->index, v->index));
 	}
 
-	u->force_proceed = TFP_NONE;
-	SetWindowDirty(WC_VEHICLE_VIEW, u->index);
-
-	u->BeginLoading();
-	if (v->index != u->index) {
-		//v->IncrementImplicitOrderIndex();
-		//ProcessOrders(v);
-		//MarkTrainAsStuck(v);
+	if (load_trains & DECOUPLE_LOAD_FIRST) {
 		v->force_proceed = TFP_NONE;
-		v->BeginLoading();
 		SetWindowDirty(WC_VEHICLE_VIEW, v->index);
+
+		v->BeginLoading();
+	}
+	if (v != u && load_trains & DECOUPLE_LOAD_SECOND) {
+		u->force_proceed = TFP_NONE;
+		SetWindowDirty(WC_VEHICLE_VIEW, u->index);
+
+		u->BeginLoading();
 	}
 
-	TriggerStationRandomisation(st, u->tile, SRT_TRAIN_ARRIVES);
-	TriggerStationAnimation(st, u->tile, SAT_TRAIN_ARRIVES);
+	if (load_trains != DECOUPLE_NO_LOAD) {
+		TriggerStationRandomisation(st, v->tile, SRT_TRAIN_ARRIVES);
+		TriggerStationAnimation(st, v->tile, SAT_TRAIN_ARRIVES);
+	}
 }
 
 /** Data structure for storing engine speed changes of an acceleration type. */

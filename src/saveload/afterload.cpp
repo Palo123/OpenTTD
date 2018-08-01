@@ -3152,7 +3152,7 @@ bool AfterLoadGame()
 						if (Order::CanAllocateItem()) {
 							Order *new_order = new Order();
 							new_order->MakeDecouple();
-							new_order->SetDecoupleFirstOrdersType(ODOF_KEEP_ORDERS);
+							new_order->SetDecoupleFirstOrdersType(ODOF_KEEP_ORDERS_NO_LOAD);
 							new_order->SetDecoupleSecondOrdersType(ODOF_INHERIT_ORDERS);
 							InsertOrder(v, new_order, num_order);
 						}

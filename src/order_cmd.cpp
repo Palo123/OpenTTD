@@ -1581,7 +1581,7 @@ CommandCost CmdModifyOrder(TileIndex tile, DoCommandFlag flags, uint32 p1, uint3
 					new_order.next = nullptr;
 					new_order.index = 0;
 					new_order.MakeDecouple();
-					new_order.SetDecoupleFirstOrdersType(ODOF_KEEP_ORDERS);
+					new_order.SetDecoupleFirstOrdersType(ODOF_KEEP_ORDERS_NO_LOAD);
 					new_order.SetDecoupleSecondOrdersType(ODOF_INHERIT_ORDERS);
 					DoCommand(tile, v->index + ((sel_ord + 1) << 20), new_order.Pack(), DC_EXEC, CMD_INSERT_ORDER);
 				}
