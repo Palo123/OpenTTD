@@ -1350,7 +1350,7 @@ CommandCost CmdModifyOrder(TileIndex tile, DoCommandFlag flags, uint32 p1, uint3
 	Order *order = v->GetOrder(sel_ord);
 	switch (order->GetType()) {
 		case OT_GOTO_STATION:
-			if (mof != MOF_NON_STOP && mof != MOF_STOP_LOCATION && mof != MOF_UNLOAD && mof != MOF_LOAD && mof != MOF_DECOUPLE && mof != MOF_DECOUPLE_VALUE) return CMD_ERROR;
+			if (mof != MOF_NON_STOP && mof != MOF_STOP_LOCATION && mof != MOF_UNLOAD && mof != MOF_LOAD && mof != MOF_DECOUPLE) return CMD_ERROR;
 			break;
 
 		case OT_GOTO_DEPOT:
@@ -1370,7 +1370,7 @@ CommandCost CmdModifyOrder(TileIndex tile, DoCommandFlag flags, uint32 p1, uint3
 			break;
 
 		case OT_DECOUPLE:
-			if (mof != MOF_FIRST_ORDERS && mof != MOF_SECOND_ORDERS) return CMD_ERROR;
+			if (mof != MOF_FIRST_ORDERS && mof != MOF_SECOND_ORDERS && mof != MOF_DECOUPLE_VALUE) return CMD_ERROR;
 			break;
 
 		default:

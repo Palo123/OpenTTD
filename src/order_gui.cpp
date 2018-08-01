@@ -113,12 +113,6 @@ static const StringID _order_non_stop_drowdown[] = {
 	INVALID_STRING_ID
 };
 
-static const StringID _order_decouple_drowdown[] = {
-	STR_ORDERS_DECOUPLE_DROP,
-	STR_ORDERS_DECOUPLE_VALUE,
-	INVALID_STRING_ID
-};
-
 static const StringID _order_couple_load_drowdown[] = {
 	STR_ORDERS_COUPLE_LOAD_ANY,
 	STR_ORDERS_COUPLE_LOAD_EMPTY,
@@ -834,13 +828,11 @@ private:
 		}
 	}
 	
-	void OrderClick_Decouple(int i)
+	void OrderClick_Decouple()
 	{
 		VehicleOrderID sel_ord = this->OrderGetSel();
 		const Order *order = this->vehicle->GetOrder(sel_ord);
-		if (i < 0) {
-			i = order->GetDecouple() == ODF_DECOUPLE ? ODF_NOTHING : ODF_DECOUPLE;
-		}
+		int i = order->GetDecouple() == ODF_DECOUPLE ? ODF_NOTHING : ODF_DECOUPLE;
 		DoCommandP(this->vehicle->tile, this->vehicle->index + (sel_ord << 20), MOF_DECOUPLE | (i << 8), CMD_MODIFY_ORDER | CMD_MSG(STR_ERROR_CAN_T_MODIFY_THIS_ORDER));
 	}
 	
@@ -1488,15 +1480,11 @@ public:
 			case WID_O_SHARED_ORDER_LIST:
 				ShowVehicleListWindow(this->vehicle);
 				break;
-				
+
 			case WID_O_DECOUPLE:
-				if (this->GetWidget<NWidgetLeaf>(widget)->ButtonHit(pt)) {
-					OrderClick_Decouple(-1);
-				} else {
-					ShowDropDownMenu(this, _order_decouple_drowdown, 0, WID_O_DECOUPLE, 0, 0);
-				}
+				OrderClick_Decouple();
 				break;
-				
+
 			case WID_O_COUPLE_LOAD:
 				if (this->GetWidget<NWidgetLeaf>(widget)->ButtonHit(pt)) {
 					OrderClick_CoupleLoad(-1);
@@ -1504,13 +1492,22 @@ public:
 					ShowDropDownMenu(this, _order_couple_load_drowdown, 0, WID_O_COUPLE_LOAD, 0, 0);
 				}
 				break;
-				
+
 			case WID_O_COUPLE_CARGO:
 				OrderClick_CoupleCargo();
 				break;
+
 			case WID_O_COUPLE_VALUE: {
 				const Order *order = this->vehicle->GetOrder(this->OrderGetSel());
 				uint value = order->GetNumCouple();
+				SetDParam(0, value);
+				ShowQueryString(STR_JUST_INT, STR_ORDER_DECOUPLE_VALUE_CAPT, 4, this, CS_NUMERAL, QSF_NONE);
+				break;
+			}
+
+			case WID_O_DECOUPLE_VALUE: {
+				const Order *order = this->vehicle->GetOrder(this->OrderGetSel());
+				uint value = order->GetNumDecouple();
 				SetDParam(0, value);
 				ShowQueryString(STR_JUST_INT, STR_ORDER_DECOUPLE_VALUE_CAPT, 4, this, CS_NUMERAL, QSF_NONE);
 				break;
@@ -1554,7 +1551,7 @@ public:
 						break;
 				}
 				DoCommandP(this->vehicle->tile, this->vehicle->index + (sel << 20), MOF_COND_VALUE | Clamp(value, 0, 2047) << 8, CMD_MODIFY_ORDER | CMD_MSG(STR_ERROR_CAN_T_MODIFY_THIS_ORDER));
-			} else if (this->vehicle->GetOrder(sel)->IsType(OT_GOTO_STATION)) {
+			} else if (this->vehicle->GetOrder(sel)->IsType(OT_DECOUPLE)) {
 				DoCommandP(this->vehicle->tile, this->vehicle->index + (sel << 20), MOF_DECOUPLE_VALUE | Clamp(value, 1, 127) << 8, CMD_MODIFY_ORDER | CMD_MSG(STR_ERROR_CAN_T_MODIFY_THIS_ORDER));
 			} else {
 				DoCommandP(this->vehicle->tile, this->vehicle->index + (sel << 20), MOF_COUPLE_VALUE | Clamp(value, 0, 127) << 8, CMD_MODIFY_ORDER | CMD_MSG(STR_ERROR_CAN_T_MODIFY_THIS_ORDER));
@@ -1603,17 +1600,6 @@ public:
 
 			case WID_O_COND_COMPARATOR:
 				DoCommandP(this->vehicle->tile, this->vehicle->index + (this->OrderGetSel() << 20), MOF_COND_COMPARATOR | index << 8,  CMD_MODIFY_ORDER | CMD_MSG(STR_ERROR_CAN_T_MODIFY_THIS_ORDER));
-				break;
-				
-			case WID_O_DECOUPLE:
-				if (index == 0) {
-					this->OrderClick_Decouple(1);
-				} else {
-					const Order *order = this->vehicle->GetOrder(this->OrderGetSel());
-					uint value = order->GetNumDecouple();
-					SetDParam(0, value);
-					ShowQueryString(STR_JUST_INT, STR_ORDER_DECOUPLE_VALUE_CAPT, 4, this, CS_NUMERAL, QSF_NONE);
-				}
 				break;
 
 			case WID_O_COUPLE_LOAD:
@@ -1833,7 +1819,7 @@ static const NWidgetPart _nested_orders_train_widgets[] = {
 															SetDataTip(STR_ORDERS_DECOUPLE_FIRST_KEEP_ORDERS_BUTTON, STR_ORDER_CONDITIONAL_VARIABLE_TOOLTIP), SetResize(1, 0),
 				NWidget(NWID_BUTTON_DROPDOWN, COLOUR_GREY, WID_O_ORDERS_SECOND), SetMinimalSize(124, 12), SetFill(1, 0),
 															SetDataTip(STR_ORDERS_DECOUPLE_SECOND_KEEP_ORDERS_BUTTON, STR_ORDER_CONDITIONAL_COMPARATOR_TOOLTIP), SetResize(1, 0),
-				NWidget(NWID_BUTTON_DROPDOWN, COLOUR_GREY, WID_O_DECOUPLE), SetMinimalSize(124, 12), SetFill(1, 0),
+				NWidget(WWT_PUSHTXTBTN, COLOUR_GREY, WID_O_DECOUPLE_VALUE), SetMinimalSize(124, 12), SetFill(1, 0),
 															SetDataTip(STR_ORDERS_DECOUPLE_SECOND_KEEP_ORDERS_BUTTON, STR_ORDER_CONDITIONAL_VALUE_TOOLTIP), SetResize(1, 0),
 			EndContainer(),
 		EndContainer(),
@@ -1843,17 +1829,17 @@ static const NWidgetPart _nested_orders_train_widgets[] = {
 	/* Second button row. */
 	NWidget(NWID_HORIZONTAL),
 		NWidget(NWID_HORIZONTAL, NC_EQUALSIZE),
-			NWidget(WWT_PUSHTXTBTN, COLOUR_GREY, WID_O_SKIP), SetMinimalSize(124, 12), SetFill(1, 0),
+			NWidget(WWT_PUSHTXTBTN, COLOUR_GREY, WID_O_SKIP), SetMinimalSize(93, 12), SetFill(1, 0),
 													SetDataTip(STR_ORDERS_SKIP_BUTTON, STR_ORDERS_SKIP_TOOLTIP), SetResize(1, 0),
-			NWidget(NWID_BUTTON_DROPDOWN, COLOUR_GREY, WID_O_DECOUPLE), SetMinimalSize(124, 12), SetFill(1, 0),
+			NWidget(WWT_TEXTBTN, COLOUR_GREY, WID_O_DECOUPLE), SetMinimalSize(93, 12), SetFill(1, 0),
 													SetDataTip(STR_ORDERS_DECOUPLE_BUTTON, STR_ORDERS_DECOUPLE_TOOLTIP), SetResize(1, 0),
 			NWidget(NWID_SELECTION, INVALID_COLOUR, WID_O_SEL_BOTTOM_MIDDLE),
-				NWidget(WWT_PUSHTXTBTN, COLOUR_GREY, WID_O_DELETE), SetMinimalSize(124, 12), SetFill(1, 0),
+				NWidget(WWT_PUSHTXTBTN, COLOUR_GREY, WID_O_DELETE), SetMinimalSize(93, 12), SetFill(1, 0),
 														SetDataTip(STR_ORDERS_DELETE_BUTTON, STR_ORDERS_DELETE_TOOLTIP), SetResize(1, 0),
-				NWidget(WWT_PUSHTXTBTN, COLOUR_GREY, WID_O_STOP_SHARING), SetMinimalSize(124, 12), SetFill(1, 0),
+				NWidget(WWT_PUSHTXTBTN, COLOUR_GREY, WID_O_STOP_SHARING), SetMinimalSize(93, 12), SetFill(1, 0),
 														SetDataTip(STR_ORDERS_STOP_SHARING_BUTTON, STR_ORDERS_STOP_SHARING_TOOLTIP), SetResize(1, 0),
 			EndContainer(),
-			NWidget(NWID_BUTTON_DROPDOWN, COLOUR_GREY, WID_O_GOTO), SetMinimalSize(124, 12), SetFill(1, 0),
+			NWidget(NWID_BUTTON_DROPDOWN, COLOUR_GREY, WID_O_GOTO), SetMinimalSize(93, 12), SetFill(1, 0),
 													SetDataTip(STR_ORDERS_GO_TO_BUTTON, STR_ORDERS_GO_TO_TOOLTIP), SetResize(1, 0),
 		EndContainer(),
 		NWidget(WWT_RESIZEBOX, COLOUR_GREY),

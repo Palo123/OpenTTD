@@ -3154,7 +3154,9 @@ bool AfterLoadGame()
 							new_order->MakeDecouple();
 							new_order->SetDecoupleFirstOrdersType(ODOF_KEEP_ORDERS_NO_LOAD);
 							new_order->SetDecoupleSecondOrdersType(ODOF_INHERIT_ORDERS);
+							new_order->SetNumDecouple(o->GetNumDecouple());
 							InsertOrder(v, new_order, num_order);
+							o->SetNumDecouple(0);
 						}
 					}
 				}
