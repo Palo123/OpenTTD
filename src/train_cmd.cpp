@@ -3197,6 +3197,10 @@ static void TrainEnterStation(Train *v, StationID station)
 		TriggerStationRandomisation(st, v->tile, SRT_TRAIN_ARRIVES);
 		TriggerStationAnimation(st, v->tile, SAT_TRAIN_ARRIVES);
 	}
+
+	if (u != NULL && v != u && (load_trains & DECOUPLE_LOAD_SECOND) == 0) {
+		ReverseTrainDirection(u);
+	}
 }
 
 /** Data structure for storing engine speed changes of an acceleration type. */
