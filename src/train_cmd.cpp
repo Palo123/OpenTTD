@@ -2222,14 +2222,14 @@ void SplitOrders(Train *v, Train *u, DecoupleLoad &load_trains)
 
 	switch (after_decouple_flags->GetDecoupleSecondOrdersType()) {
 		case ODOF_KEEP_ORDERS:
-			load_trains |= DECOUPLE_LOAD_FIRST;
+			load_trains |= DECOUPLE_LOAD_SECOND;
 			FALLTHROUGH;
-		case ODOF_KEEP_ORDERS_NO_LOAD:
+		case ODOF_KEEP_ORDERS_NO_LOAD: // TODO is order index copied?
 			u->orders.list = v->orders.list;
 			u->AddToShared(v);
 			break;
 		case ODOF_INHERIT_ORDERS:
-			load_trains |= DECOUPLE_LOAD_FIRST;
+			load_trains |= DECOUPLE_LOAD_SECOND;
 			InheritWaitForCoupleOrders(v, u);
 			break;
 		case ODOF_WAIT_FOR_COUPLE: // TODO wait_for_couple
@@ -2240,12 +2240,12 @@ void SplitOrders(Train *v, Train *u, DecoupleLoad &load_trains)
 
 	switch (after_decouple_flags->GetDecoupleFirstOrdersType()) {
 		case ODOF_KEEP_ORDERS:
-			load_trains |= DECOUPLE_LOAD_SECOND;
+			load_trains |= DECOUPLE_LOAD_FIRST;
 			FALLTHROUGH;
 		case ODOF_KEEP_ORDERS_NO_LOAD: // no change
 			break;
 		case ODOF_INHERIT_ORDERS:
-			load_trains |= DECOUPLE_LOAD_SECOND;
+			load_trains |= DECOUPLE_LOAD_FIRST;
 			InheritWaitForCoupleOrders(v, v);
 			break;
 		case ODOF_WAIT_FOR_COUPLE: // TODO wait_for_couple
