@@ -982,16 +982,16 @@ static CommandCost CheckNewTrain(Train *original_dst, Train *dst, Train *origina
 	/* Just add 'new' engines and subtract the original ones.
 	 * If that's less than or equal to 0 we can be sure we did
 	 * not add any engines (read: trains) along the way. */
-	if ((src          != nullptr && src->IsEngine()          ? 1 : 0) +
-			(dst          != nullptr && dst->IsEngine()          ? 1 : 0) -
-			(original_src != nullptr && original_src->IsEngine() ? 1 : 0) -
-			(original_dst != nullptr && original_dst->IsEngine() ? 1 : 0) <= 0) {
+	if ((src          != nullptr && src->unitnumber          ? 1 : 0) +
+			(dst          != nullptr && dst->unitnumber          ? 1 : 0) -
+			(original_src != nullptr && original_src->unitnumber ? 1 : 0) -
+			(original_dst != nullptr && original_dst->unitnumber ? 1 : 0) <= 0) {
 		return CommandCost();
 	}
 
 	/* Get a free unit number and check whether it's within the bounds.
 	 * There will always be a maximum of one new train. */
-	if (GetFreeUnitNumber(VEH_TRAIN) <= _settings_game.vehicle.max_trains) return CommandCost();
+	if (GetFreeUnitNumber(VEH_TRAIN, src != nullptr ? src->owner : dst->owner) <= _settings_game.vehicle.max_trains) return CommandCost();
 
 	return_cmd_error(STR_ERROR_TOO_MANY_VEHICLES_IN_GAME);
 }
@@ -1004,7 +1004,7 @@ static CommandCost CheckNewTrain(Train *original_dst, Train *dst, Train *origina
 static CommandCost CheckTrainAttachment(Train *t)
 {
 	/* No multi-part train, no need to check. */
-	if (t == nullptr || t->Next() == nullptr || !t->IsEngine()) return CommandCost();
+	if (t == nullptr || t->Next() == nullptr || (!t->IsEngine() && t->IsStoppedInDepot())) return CommandCost();
 
 	/* The maximum length for a train. For each part we decrease this by one
 	 * and if the result is negative the train is simply too long. */
@@ -2074,42 +2074,6 @@ static inline bool CheckCompatibleRail(const Train *v, TileIndex tile)
 			(!v->IsPrimaryVehicle() || HasBit(v->compatible_railtypes, GetRailType(tile)));
 }
 
-static bool TrainCheckIfLineContinuesAfterStation(Train *v)
-{
-	DiagDirection dir = TrainExitDir(v->direction, v->track);
-	
-	assert(IsRailStationTile(v->tile));
-	assert(dir < DIAGDIR_END);
-
-	TileIndex tile = v->tile;
-	
-	do {
-		tile += TileOffsByDiagDir(dir);
-	} while (IsCompatibleTrainStationTile(tile, v->tile));
-	
-	/* Determine the track status on the next tile */
-	TrackStatus ts = GetTileTrackStatus(tile, TRANSPORT_RAIL, 0, ReverseDiagDir(dir));
-	TrackdirBits reachable_trackdirs = DiagdirReachesTrackdirs(dir);
-
-	TrackdirBits trackdirbits = TrackStatusToTrackdirBits(ts) & reachable_trackdirs;
-	//TrackdirBits red_signals = TrackStatusToRedSignals(ts) & reachable_trackdirs;
-
-	/* We are sure the train is not entering a depot, it is detected above */
-
-	/* mask unreachable track bits if we are forbidden to do 90deg turns */
-	TrackBits bits = TrackdirBitsToTrackBits(trackdirbits);
-	if (_settings_game.pf.forbid_90_deg) {
-		bits &= ~TrackCrossesTracks(FindFirstTrack(v->track));
-	}
-
-	/* no suitable trackbits at all || unusable rail (wrong type or owner) */
-	if (bits == TRACK_BIT_NONE || !CheckCompatibleRail(v, tile)) {
-		return false;
-	}
-	
-	return true;
-}
-
 bool TrainFitStation(const Train *v)
 {
 	if (!IsRailStationTile(v->tile)) return false;
@@ -2135,7 +2099,8 @@ static Train *GetDecoupleVehicle(Train *v)
 {
 	Train *ret = v->GetNextVehicle();
 	bool multihead_front = v->IsMultiheaded();
-	for (int i = 1; i < v->current_order.GetNumDecouple() && ret->GetNextVehicle() != nullptr; i++) {
+	Order *decouple_order = v->orders.list->GetOrderAt(v->cur_implicit_order_index + 1);
+	for (int i = 1; i < decouple_order->GetNumDecouple() && ret->GetNextVehicle() != nullptr; i++) {
 		if (multihead_front) {
 			if (ret->IsRearDualheaded()) multihead_front = false;
 		} else {
@@ -2160,10 +2125,12 @@ static bool TryTrainDecouple(Train *v, Train *u)
 	ArrangeTrains(&first_param, nullptr, &v, u, true);
 
 	bool ok = true;
-	CommandCost ret = CheckTrainAttachment(v);
+	//ValidateTrains(Train *original_dst, Train *dst, Train *original_src, Train *src, bool check_limit)
+	CommandCost ret = ValidateTrains(nullptr, u, v, v, true);
+	//CommandCost ret = CheckTrainAttachment(v);
 	ok &= !ret.Failed();
-	ret = CheckTrainAttachment(u);
-	ok &= !ret.Failed();
+	//ret = CheckTrainAttachment(u);
+	//ok &= !ret.Failed();
 	u->SetFrontWagon();
 	ok &= u->ConsistChanged(CCF_ARRANGE_CHECK);
 	ok &= v->ConsistChanged(CCF_ARRANGE_CHECK);
@@ -2185,7 +2152,6 @@ void InheritWaitForCoupleOrders(Train *v, Train *u)
 	Order *station_order = new Order();
 	Order *station_decouple_order = new Order();
 	Order *wait_for_couple_order = new Order();
-	
 
 	station_order->AssignOrder(v->current_order);
 	station_decouple_order->AssignOrder(*v->orders.list->GetOrderAt(v->cur_implicit_order_index + 1));
@@ -2209,7 +2175,7 @@ void InheritWaitForCoupleOrders(Train *v, Train *u)
 
 void CreateWaitForCoupleOrder(Train *v)
 {
-	if (v->orders.list == NULL && !OrderList::CanAllocateItem()) return;
+	if (v->orders.list == nullptr && !OrderList::CanAllocateItem()) return;
 	if (!Order::CanAllocateItem()) return;
 
 	Order *wait_for_couple_order = new Order();
@@ -2233,10 +2199,19 @@ void SplitOrders(Train *v, Train *u, DecoupleLoad &load_trains)
 	switch (after_decouple_flags->GetDecoupleSecondOrdersType()) {
 		case ODOF_KEEP_ORDERS:
 			load_trains |= DECOUPLE_LOAD_SECOND;
-			FALLTHROUGH;
-		case ODOF_KEEP_ORDERS_NO_LOAD: // TODO copy order index
 			u->orders.list = v->orders.list;
 			u->AddToShared(v);
+			u->cur_real_order_index = v->cur_real_order_index;
+			u->cur_implicit_order_index = v->cur_implicit_order_index;
+			u->current_order = v->current_order;
+			break;
+		case ODOF_KEEP_ORDERS_NO_LOAD:
+			u->orders.list = v->orders.list;
+			u->AddToShared(v);
+			u->cur_real_order_index = v->cur_real_order_index;
+			u->cur_implicit_order_index = v->cur_implicit_order_index;
+			u->current_order = v->current_order;
+			u->IncrementImplicitOrderIndex();
 			break;
 		case ODOF_INHERIT_ORDERS:
 			load_trains |= DECOUPLE_LOAD_SECOND;
@@ -2252,8 +2227,9 @@ void SplitOrders(Train *v, Train *u, DecoupleLoad &load_trains)
 	switch (after_decouple_flags->GetDecoupleFirstOrdersType()) {
 		case ODOF_KEEP_ORDERS:
 			load_trains |= DECOUPLE_LOAD_FIRST;
-			FALLTHROUGH;
-		case ODOF_KEEP_ORDERS_NO_LOAD: // no change
+			break;
+		case ODOF_KEEP_ORDERS_NO_LOAD:
+			v->IncrementImplicitOrderIndex();
 			break;
 		case ODOF_INHERIT_ORDERS:
 			load_trains |= DECOUPLE_LOAD_FIRST;
@@ -3210,7 +3186,7 @@ static void TrainEnterStation(Train *v, StationID station)
 		TriggerStationAnimation(st, v->tile, SAT_TRAIN_ARRIVES);
 	}
 
-	if (u != NULL && v != u && (load_trains & DECOUPLE_LOAD_SECOND) == 0) {
+	if (u != nullptr && v != u && (load_trains & DECOUPLE_LOAD_SECOND) == 0) {
 		ReverseTrainDirection(u);
 	}
 }
