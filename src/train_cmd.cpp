@@ -451,6 +451,8 @@ int Train::GetCurrentMaxSpeed() const
 	}
 
 	max_speed = min(max_speed, this->current_order.GetMaxSpeed());
+	if (this->current_order.IsType(OT_GOTO_COUPLE)) max_speed = min(max_speed, 40);
+	if (this->IsFrontWagon()) max_speed = min(max_speed, 50);
 	return min(max_speed, this->gcache.cached_max_track_speed);
 }
 
@@ -4162,16 +4164,16 @@ static Train *GetCouplePosition(Train *v, bool &reverse)
 {
 	Vehicle *other_vehicle = nullptr;
 	FollowTrainReservation(v, v->tile, v->GetVehicleTrackdir(), &other_vehicle);
-	
+
 	if (other_vehicle == nullptr) return nullptr;
 	if (other_vehicle->First()->index == v->index) return nullptr;
 	if (!other_vehicle->current_order.IsType(OT_WAIT_COUPLE)) return nullptr;
 	Train *u = Train::From(other_vehicle)->First();
 	if (!TrainFitStation(u)) return nullptr;
-	
+
 	DirDiff dir_diff = DirDifference(v->direction, u->direction);
 	reverse = dir_diff == DIRDIFF_SAME || dir_diff == DIRDIFF_45RIGHT || dir_diff == DIRDIFF_45LEFT;
-	
+
 	Train *z;
 	if (reverse) {
 		z = u->Last();
@@ -4180,18 +4182,16 @@ static Train *GetCouplePosition(Train *v, bool &reverse)
 	}
 	int x_diff = abs(v->x_pos - z->x_pos);
 	int y_diff = abs(v->y_pos - z->y_pos);
-	
+
 	int diff = max(x_diff, y_diff);
-	
-	/* If we are goint to reverse, we need the longer distance to not crash. 
-	 * Front vehicle always reverse */
+
 	uint8 v_length = v->gcache.cached_veh_length;
 	uint8 u_length = reverse ? u->Last()->gcache.cached_veh_length : u->gcache.cached_veh_length;
 	
 	if (diff == ((v_length + 1) / 2 + (u_length + 1) / 2)) {
 		return u;
 	}
-	
+
 	return nullptr;
 }
 
