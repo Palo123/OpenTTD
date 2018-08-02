@@ -3149,6 +3149,10 @@ static void TrainEnterStation(Train *v, StationID station)
 	if (v->current_order.GetDestination() == station && v->current_order.GetDecouple() == ODF_DECOUPLE) {
 		u = DecoupleTrain(v, load_trains);
 		u->last_station_visited = station;
+		if (u == v && v->owner == _local_company) {
+			SetDParam(0, v->index);
+			AddVehicleAdviceNewsItem(STR_NEWS_ORDER_DECOUPLE_FAILED, v->index);
+		}
 	} else {
 		load_trains = DECOUPLE_LOAD_FIRST;
 	}
@@ -4115,6 +4119,11 @@ static void Couple(Train *v, Train *u, bool train_u_reversed)
 	Train *v_last = v->Last();
 	
 	if (!TryTrainCouple(v, u)) {
+		if (v->owner == _local_company) {
+			SetDParam(0, v->index);
+			SetDParam(1, u->index);
+			AddVehicleAdviceNewsItem(STR_NEWS_ORDER_COUPLE_FAILED, v->index);
+		}
 		return;
 	}
 	
