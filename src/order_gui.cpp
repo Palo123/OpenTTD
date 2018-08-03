@@ -302,8 +302,6 @@ void DrawOrderString(const Vehicle *v, const Order *order, int order_index, int 
 				}
 				if (order->GetDecouple()) {
 					SetDParam(5, STR_ORDER_DECOUPLE);
-					uint num_d = order->GetNumDecouple();
-					SetDParam(6, num_d == 0 ? 1 : num_d);
 				}
 				if (v->type == VEH_TRAIN && (order->GetNonStopType() & ONSF_NO_STOP_AT_DESTINATION_STATION) == 0) {
 					SetDParam(8, order->GetStopLocation() + STR_ORDER_STOP_LOCATION_NEAR_END);
@@ -390,14 +388,14 @@ void DrawOrderString(const Vehicle *v, const Order *order, int order_index, int 
 			SetDParam(0, STR_ORDER_WAIT_FOR_COUPLE);
 			break;
 			
-		case OT_DECOUPLE:
-			// always write first and second part and reverse situation -> param 0 string with param -->> 1 2 3
-			SetDParam(0, STR_EMPTY);
-			/*SetDParam(0, STR_ORDER_DECOUPLE_ADVANCED);
-			SetDParam(1, order->GetDecoupleFirstOrdersType());
-			SetDParam(2, order->GetDecoupleSecondOrdersType());
-			SetDParam(3, order->GetDecoupleReverseDirection());*/
+		case OT_DECOUPLE: {
+			SetDParam(0, STR_ORDER_DECOUPLE_DETAILS);
+			uint num_d = order->GetNumDecouple();
+			SetDParam(1, num_d == 0 ? 1 : num_d);
+			SetDParam(2, STR_ORDER_DECOUPLE_KEEP_ORDERS + order->GetDecoupleFirstOrdersType());
+			SetDParam(3, STR_ORDER_DECOUPLE_KEEP_ORDERS + order->GetDecoupleSecondOrdersType());
 			break;
+		}
 
 		default: NOT_REACHED();
 	}
@@ -1820,7 +1818,7 @@ static const NWidgetPart _nested_orders_train_widgets[] = {
 				NWidget(NWID_BUTTON_DROPDOWN, COLOUR_GREY, WID_O_ORDERS_SECOND), SetMinimalSize(124, 12), SetFill(1, 0),
 															SetDataTip(STR_ORDERS_DECOUPLE_SECOND_KEEP_ORDERS_BUTTON, STR_ORDER_CONDITIONAL_COMPARATOR_TOOLTIP), SetResize(1, 0),
 				NWidget(WWT_PUSHTXTBTN, COLOUR_GREY, WID_O_DECOUPLE_VALUE), SetMinimalSize(124, 12), SetFill(1, 0),
-															SetDataTip(STR_ORDERS_DECOUPLE_SECOND_KEEP_ORDERS_BUTTON, STR_ORDER_CONDITIONAL_VALUE_TOOLTIP), SetResize(1, 0),
+															SetDataTip(STR_ORDERS_DECOUPLE_VALUE_BUTTON, STR_ORDER_CONDITIONAL_VALUE_TOOLTIP), SetResize(1, 0),
 			EndContainer(),
 		EndContainer(),
 		NWidget(WWT_PUSHIMGBTN, COLOUR_GREY, WID_O_SHARED_ORDER_LIST), SetMinimalSize(12, 12), SetDataTip(SPR_SHARED_ORDERS_ICON, STR_ORDERS_VEH_WITH_SHARED_ORDERS_LIST_TOOLTIP),

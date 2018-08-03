@@ -4001,6 +4001,7 @@ STR_ORDERS_SKIP_BUTTON                                          :{BLACK}Skip
 STR_ORDERS_SKIP_TOOLTIP                                         :{BLACK}Skip the current order, and start the next. Ctrl+Click skips to the selected order
 
 STR_ORDERS_COUPLE_VALUE_BUTTON                                  :{BLACK}Units couple
+STR_ORDERS_DECOUPLE_VALUE_BUTTON                                :{BLACK}Units decouple
 
 STR_ORDERS_DECOUPLE_BUTTON                                      :{BLACK}Decouple
 STR_ORDERS_DECOUPLE_DROP                                        :Decouple
@@ -4073,8 +4074,15 @@ STR_ORDER_NO_UNLOAD_FULL_LOAD                                   :(No unloading a
 STR_ORDER_NO_UNLOAD_FULL_LOAD_ANY                               :(No unloading and wait for any full load)
 STR_ORDER_NO_UNLOAD_NO_LOAD                                     :(No unloading and no loading)
 
-STR_ORDER_DECOUPLE                                              :(Decouple and keep {COMMA} units)
+STR_ORDER_DECOUPLE                                              :(Decouple)
+STR_ORDER_DECOUPLE_DETAILS                                      :[Decouple {COMMA} units] First part {STRING} Second part {STRING}
+
 STR_ORDER_COUPLE_UNITS                                          :(with {COMMA} units)
+
+STR_ORDER_DECOUPLE_KEEP_ORDERS                                  :(Keep orders)
+STR_ORDER_DECOUPLE_KEEP_ORDERS_NO_LOAD                          :(Keep orders without loading/unloading)
+STR_ORDER_DECOUPLE_INHERIT_ORDERS                               :(Inherit orders)
+STR_ORDER_DECOUPLE_WAIT_FOR_COUPLE                              :(Wait for couple)
 
 STR_ORDER_AUTO_REFIT                                            :(Refit to {STRING})
 STR_ORDER_FULL_LOAD_REFIT                                       :(Full load with refit to {STRING})

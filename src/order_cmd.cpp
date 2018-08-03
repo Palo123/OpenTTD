@@ -1565,11 +1565,10 @@ CommandCost CmdModifyOrder(TileIndex tile, DoCommandFlag flags, uint32 p1, uint3
 				order->SetConditionSkipToOrder(data);
 				break;
 				
-			case MOF_DECOUPLE_VALUE: {
+			case MOF_DECOUPLE_VALUE:
 				order->SetNumDecouple(data);
-				data = ODF_DECOUPLE;
-			}
-				FALLTHROUGH;
+				break;
+
 			case MOF_DECOUPLE: {
 				OrderDecoupleFlags decouple_flags = order->GetDecouple();
 				order->SetDecouple(data);
@@ -1585,9 +1584,9 @@ CommandCost CmdModifyOrder(TileIndex tile, DoCommandFlag flags, uint32 p1, uint3
 					new_order.SetDecoupleSecondOrdersType(ODOF_INHERIT_ORDERS);
 					DoCommand(tile, v->index + ((sel_ord + 1) << 20), new_order.Pack(), DC_EXEC, CMD_INSERT_ORDER);
 				}
-			}
 				break;
-				
+			}
+
 			case MOF_COUPLE_LOAD:
 				order->SetCoupleLoad((OrderCoupleFlags)data);
 				break;
