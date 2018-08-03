@@ -1083,7 +1083,9 @@ CommandCost CmdDeleteOrder(TileIndex tile, DoCommandFlag flags, uint32 p1, uint3
 
 	if (v->GetOrder(sel_ord) == nullptr) return CMD_ERROR;
 	Order *next_order = v->GetOrder(sel_ord + 1);
-	if (next_order != nullptr && next_order->IsType(OT_DECOUPLE)) return CMD_ERROR;
+	if (next_order != nullptr && next_order->IsType(OT_DECOUPLE)) {
+		DoCommand(tile, v->index, sel_ord + 1, flags, CMD_DELETE_ORDER);
+	}
 
 	if (flags & DC_EXEC) DeleteOrder(v, sel_ord);
 	return CommandCost();
