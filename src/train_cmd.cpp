@@ -2186,20 +2186,16 @@ static Train *DecoupleTrain(Train *v)
 	NormaliseTrainHead(v);
 	
 	if (u->orders.list == nullptr && !OrderList::CanAllocateItem()) return u;
-	if (Order::CanAllocateItem(2)) {
+	if (Order::CanAllocateItem(3)) {
 		Order *copy = new Order();
 		copy->AssignOrder(v->current_order);
 		InsertOrder(u, copy, 0);
 		Order *wait_for_couple = new Order();
 		wait_for_couple->MakeWaitCouple();
 		InsertOrder(u, wait_for_couple, 1);
-
-		OrderIDStack next_station = v->orders.list->GetNextStoppingOrder(v);
-		if (!next_station.IsEmpty() && Order::CanAllocateItem()) {
-			Order *copy_destination = new Order();
-			copy_destination->AssignOrder(*Order::Get(next_station.Pop()));
-			InsertOrder(u, copy_destination, 2);
-		}
+		Order *copy_destination = new Order();
+		copy_destination->AssignOrder(*Order::Get(v->orders.list->GetNextStoppingOrder(v).Pop()));
+		InsertOrder(u, copy_destination, 2);
 	}
 	InvalidateWindowClassesData(WC_TRAINS_LIST, 0);
 	return u;
@@ -3073,17 +3069,19 @@ int Train::UpdateSpeed()
  */
 static void TrainEnterStation(Train *v, StationID station)
 {
-	v->last_station_visited = station;
-
+	//v->last_station_visited = station;
+	
 	Train *u = nullptr;
-	if (v->current_order.GetDestination() == station && v->current_order.GetDecouple() == ODF_DECOUPLE) {
+	if (v->current_order.GetDecouple() == ODF_DECOUPLE) {
 		u = DecoupleTrain(v);
 		ProcessOrders(u);
-		u->last_station_visited = station;
 	} else {
 		u = v;
 	}
-
+	
+	v->last_station_visited = station;
+	u->last_station_visited = station;
+	
 	/* check if a train ever visited this station before */
 	Station *st = Station::Get(station);
 	if (!(st->had_vehicle_of_type & HVOT_TRAIN)) {
