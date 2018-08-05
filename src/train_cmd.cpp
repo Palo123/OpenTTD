@@ -2159,15 +2159,15 @@ void InheritWaitForCoupleOrders(Train *v, Train *u)
 	station_decouple_order->AssignOrder(*v->orders.list->GetOrderAt(v->cur_implicit_order_index + 1));
 	wait_for_couple_order->MakeWaitCouple();
 
+	OrderIDStack next_station = v->orders.list->GetNextStoppingOrder(v);
 	if (v == u) DeleteVehicleOrders(v, false, true);
-	
+
 	if (u->orders.list == nullptr && !OrderList::CanAllocateItem()) return;
 
 	InsertOrder(u, station_order, 0);
 	InsertOrder(u, station_decouple_order, 1);
 	InsertOrder(u, wait_for_couple_order, 2);
 
-	OrderIDStack next_station = v->orders.list->GetNextStoppingOrder(v);
 	if (next_station.IsEmpty() || !Order::CanAllocateItem()) return;
 
 	Order *copy_destination = new Order();
