@@ -910,6 +910,7 @@ uint32 GetImmutableVariableIfAvailable(const Train *t, const VehicleScopeResolve
 		}
 	}
 	*available = false;
+	return UINT_MAX;
 }
 
 /* virtual */ uint32 VehicleScopeResolver::GetVariable(byte variable, uint32 parameter, bool *available) const

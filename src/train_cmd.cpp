@@ -1750,9 +1750,10 @@ static Train *ReverseTrainVeh(Train *v)
 
 	if (v->vehstatus & VS_STOPPED) {
 		new_front->vehstatus |= VS_STOPPED;
+		if (v->IsWagon()) v->vehstatus &= ~VS_STOPPED;
 	} else {
 		new_front->vehstatus &= ~VS_STOPPED;
-		v->vehstatus |= VS_STOPPED;
+		if (v->IsEngine()) v->vehstatus |= VS_STOPPED;
 	}
 
 	new_front->CopyVehicleConfigAndStatistics(v);
@@ -1906,7 +1907,6 @@ void ReverseTrainDirection(Train *v)
 		SwapTrainFlags(&u->gv_flags, &u->gv_flags);
 		UpdateStatusAfterSwap(u);
 	}
-
 
 	/* update all images */
 	for (Train *u = v; u != nullptr; u = u->Next()) u->UpdateViewport(false, false);
@@ -2172,6 +2172,7 @@ void InheritWaitForCoupleOrders(Train *v, Train *u)
 
 	Order *copy_destination = new Order();
 	copy_destination->AssignOrder(*Order::Get(next_station.Pop()));
+	copy_destination->SetDecouple(ODF_NOTHING);
 	InsertOrder(u, copy_destination, 3);
 }
 
@@ -2198,33 +2199,35 @@ void SplitOrders(Train *v, Train *u, DecoupleLoad &load_trains)
 	Order *after_decouple_flags = v->orders.list->GetOrderAt(v->cur_implicit_order_index + 1);
 	assert(after_decouple_flags->GetType() == OT_DECOUPLE);
 
-	switch (after_decouple_flags->GetDecoupleSecondOrdersType()) {
-		case ODOF_KEEP_ORDERS:
-			load_trains |= DECOUPLE_LOAD_SECOND;
-			u->orders.list = v->orders.list;
-			u->AddToShared(v);
-			u->cur_real_order_index = v->cur_real_order_index;
-			u->cur_implicit_order_index = v->cur_implicit_order_index;
-			u->current_order = v->current_order;
-			break;
-		case ODOF_KEEP_ORDERS_NO_LOAD:
-			u->orders.list = v->orders.list;
-			u->AddToShared(v);
-			u->cur_real_order_index = v->cur_real_order_index;
-			u->cur_implicit_order_index = v->cur_implicit_order_index;
-			u->current_order = v->current_order;
-			u->IncrementImplicitOrderIndex();
-			break;
-		case ODOF_INHERIT_ORDERS:
-			load_trains |= DECOUPLE_LOAD_SECOND;
-			InheritWaitForCoupleOrders(v, u);
-			break;
-		case ODOF_WAIT_FOR_COUPLE:
-			CreateWaitForCoupleOrder(u);
-			break;
-		default: NOT_REACHED();
+	if (v != u) {
+		switch (after_decouple_flags->GetDecoupleSecondOrdersType()) {
+			case ODOF_KEEP_ORDERS:
+				load_trains |= DECOUPLE_LOAD_SECOND;
+				u->orders.list = v->orders.list;
+				u->AddToShared(v);
+				u->cur_real_order_index = v->cur_real_order_index;
+				u->cur_implicit_order_index = v->cur_implicit_order_index;
+				u->current_order = v->current_order;
+				break;
+			case ODOF_KEEP_ORDERS_NO_LOAD:
+				u->orders.list = v->orders.list;
+				u->AddToShared(v);
+				u->cur_real_order_index = v->cur_real_order_index;
+				u->cur_implicit_order_index = v->cur_implicit_order_index;
+				u->current_order = v->current_order;
+				u->IncrementImplicitOrderIndex();
+				break;
+			case ODOF_INHERIT_ORDERS:
+				load_trains |= DECOUPLE_LOAD_SECOND;
+				InheritWaitForCoupleOrders(v, u);
+				break;
+			case ODOF_WAIT_FOR_COUPLE:
+				CreateWaitForCoupleOrder(u);
+				break;
+			default: NOT_REACHED();
+		}
+		ProcessOrders(u);
 	}
-	ProcessOrders(u);
 
 	switch (after_decouple_flags->GetDecoupleFirstOrdersType()) {
 		case ODOF_KEEP_ORDERS:
@@ -2246,7 +2249,7 @@ void SplitOrders(Train *v, Train *u, DecoupleLoad &load_trains)
 	ProcessOrders(v);
 }
 
-static Train *DecoupleTrain(Train *v, DecoupleLoad &load_trains)
+static Train *DecoupleTrain(Train *v)
 {
 	if (!CanDecouple(v)) return v;
 
@@ -2270,8 +2273,6 @@ static Train *DecoupleTrain(Train *v, DecoupleLoad &load_trains)
 	NormaliseTrainHead(u, CCF_ARRANGE_STATION);
 	NormaliseTrainHead(v, CCF_ARRANGE_STATION);
 
-	SplitOrders(v, u, load_trains);
-	
 	InvalidateWindowClassesData(WC_TRAINS_LIST, 0);
 	return u;
 }
@@ -3066,8 +3067,7 @@ bool TryPathReserve(Train *v, bool mark_as_stuck, bool first_tile_okay)
 static bool CheckReverseTrain(const Train *v)
 {
 	if (_settings_game.difficulty.line_reverse_mode != 0 ||
-			v->track == TRACK_BIT_DEPOT || v->track == TRACK_BIT_WORMHOLE ||
-			!(v->direction & 1)) {
+			v->track == TRACK_BIT_DEPOT) {
 		return false;
 	}
 
@@ -3149,7 +3149,8 @@ static void TrainEnterStation(Train *v, StationID station)
 	Train *u = nullptr;
 	DecoupleLoad load_trains = DECOUPLE_NO_LOAD;
 	if (v->current_order.GetDestination() == station && v->current_order.GetDecouple() == ODF_DECOUPLE) {
-		u = DecoupleTrain(v, load_trains);
+		u = DecoupleTrain(v);
+		SplitOrders(v, u, load_trains);
 		u->last_station_visited = station;
 		if (u == v && v->owner == _local_company) {
 			SetDParam(0, v->index);
@@ -4114,7 +4115,7 @@ static void Couple(Train *v, Train *u, bool train_u_reversed)
 		u = u->First();
 	}
 	v->IncrementImplicitOrderIndex();
-	ProcessOrders(v);
+	//ProcessOrders(v);
 	ReverseTrainDirection(v);
 	v = v->First();
 
