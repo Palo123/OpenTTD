@@ -1578,6 +1578,11 @@ static void SwapTrainFlags(uint16 *swap_flag1, uint16 *swap_flag2)
  */
 static void UpdateStatusAfterSwap(Train *v)
 {
+	/* Reverse the direction. */
+	if (v->track != TRACK_BIT_DEPOT) v->direction = ReverseDir(v->direction);
+	
+	ToggleBit(v->flags, VRF_REVERSE_DIRECTION);
+
 	/* Call the proper EnterTile function unless we are in a wormhole. */
 	if (v->track != TRACK_BIT_WORMHOLE) {
 		VehicleEnterTile(v, v->tile, v->x_pos, v->y_pos);
@@ -1701,18 +1706,9 @@ static Train *ReverseTrainChain(Train *v)
 	return new_first;
 }
 
-void ReverseTrainOrientation(Train *v)
-{
-	for (Train *t = v; t != nullptr; t = t->Next()) {
-		/* Reverse the direction. */
-		if (t->track != TRACK_BIT_DEPOT) t->direction = ReverseDir(t->direction);
-		
-		ToggleBit(t->flags, VRF_REVERSE_DIRECTION);
-	}
-}
-
 static Train *ReverseTrainVeh(Train *v)
 {
+
 	ReverseTrainArticulated(v);
 	ReverseTrainMultiheaded(v);
 
@@ -1722,18 +1718,18 @@ static Train *ReverseTrainVeh(Train *v)
 	} else {
 		new_front->SetFrontWagon();
 	}
-
-	ReverseTrainOrientation(new_front);
-
-	if (v == new_front) return v;
-
-
-	if (v->orders.list != nullptr || OrderList::CanAllocateItem()) {
-		DeleteVehicleOrders(new_front, false, new_front->GetNumOrders() != v->GetNumOrders());
-
-		new_front->orders.list = v->orders.list;
-		new_front->AddToShared(v);
+	for (Train *u = new_front; u != nullptr; u = u->Next()) {
+		SwapTrainFlags(&u->gv_flags, &u->gv_flags);
+		UpdateStatusAfterSwap(u);
 	}
+	
+	if (v == new_front) return v;
+	if (v->orders.list == nullptr && !OrderList::CanAllocateItem()) return new_front;
+	
+	DeleteVehicleOrders(new_front, false, new_front->GetNumOrders() != v->GetNumOrders());
+
+	new_front->orders.list = v->orders.list;
+	new_front->AddToShared(v);
 	
 	if (v->IsFrontEngine()) {
 		v->ClearFrontEngine();
@@ -1754,7 +1750,6 @@ static Train *ReverseTrainVeh(Train *v)
 	ChangeVehicleViewWindow(v->index, new_front->index);
 	ChangeVehicleNews(v->index, new_front->index);
 	DeleteVehicleOrders(v);
-
 	return new_front;
 }
 
@@ -1893,13 +1888,6 @@ void ReverseTrainDirection(Train *v)
 
 	/* recalculate cached data */
 	v->ConsistChanged(CCF_TRACK);
-
-	InvalidateWindowClassesData(WC_TRAINS_LIST, 0);
-
-	for (Train *u = v; u != nullptr; u = u->Next()) {
-		SwapTrainFlags(&u->gv_flags, &u->gv_flags);
-		UpdateStatusAfterSwap(u);
-	}
 
 	/* update all images */
 	for (Train *u = v; u != nullptr; u = u->Next()) u->UpdateViewport(false, false);
