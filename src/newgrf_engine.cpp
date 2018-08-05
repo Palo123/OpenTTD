@@ -944,12 +944,12 @@ uint32 GetImmutableVariableIfAvailable(const Train *t, const VehicleScopeResolve
 		return UINT_MAX;
 	}
 
-	if (this->v->type == VEH_TRAIN) {
+	/*if (this->v->type == VEH_TRAIN) {
 		uint32 ret = GetImmutableVariableIfAvailable(Train::From(this->self_v), this, variable, available);
 		if (*available) return ret;
 
 		*available = true;
-	}
+	}*/
 
 	return VehicleGetVariable(const_cast<Vehicle*>(this->v), this, variable, parameter, available);
 }
