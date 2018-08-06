@@ -101,6 +101,41 @@ void CheckTrainsLengths()
 	}
 }
 
+EngineID ConsistFirstEngine(Train *head, Train *u)
+{
+	EngineID first_engine = INVALID_ENGINE;
+	EngineID last_engine  = INVALID_ENGINE;
+	for (Train *t = head; t != nullptr && t != u; t = t->Next()) {
+		if (t->IsEngine()) first_engine = t->engine_type;
+	}
+	for (Train *t = head->Last(); t != nullptr && t != u; t = t->Previous()) {
+		if (t->IsEngine() || t->IsRearDualheaded() ||
+			(t->GetLastEnginePart() == t && t->GetFirstEnginePart()->IsEngine())) last_engine = t->engine_type;
+	}
+	if (HasBit(u->flags, VRF_REVERSE_DIRECTION)) {
+		if (u == u->Last()) {
+			if (u->IsEngine()) {
+				return INVALID_ENGINE;
+			}
+		}
+		if (last_engine != INVALID_ENGINE) {
+			return last_engine;
+		}
+		return first_engine;
+	} else {
+		if (u == head) {
+			if (u->IsEngine()) {
+				return INVALID_ENGINE;
+			}
+		}
+		if (first_engine != INVALID_ENGINE) {
+			return first_engine;
+		}
+		return last_engine;
+	}
+	return INVALID_ENGINE;
+}
+
 /**
  * Recalculates the cached stuff of a train. Should be called each time a vehicle is added
  * to/removed from the chain, and when the game is loaded.
@@ -125,15 +160,13 @@ bool Train::ConsistChanged(ConsistChangeFlags allowed_changes)
 
 	bool train_can_tilt = true;
 
-	for (int reverse_order = 0; reverse_order < 2; reverse_order++) {
-		for (Train *u = reverse_order ? last : this; u != nullptr; u = reverse_order ? u->Previous() : u->Next()) {
-			const RailVehicleInfo *rvi_u = RailVehInfo(u->engine_type);
-
+	//for (int reverse_order = 0; reverse_order < 2; reverse_order++) {
+	for (Train *u = this; u != nullptr; u = u->Next()) {
 			/* Check the this->first cache. */
-			assert(u->First() == this);
+
 
 			/* update the 'first engine' */
-			if (reverse_order) {
+			/*if (reverse_order) {
 				if (HasBit(u->flags, VRF_REVERSE_DIRECTION)) {
 					u->gcache.first_engine = last == u ? INVALID_ENGINE : last_engine;
 					if (u->IsEngine() || u->IsRearDualheaded() ||
@@ -145,16 +178,19 @@ bool Train::ConsistChanged(ConsistChangeFlags allowed_changes)
 					u->gcache.first_engine = this == u ? INVALID_ENGINE : first_engine;
 					if (u->IsEngine()) first_engine = u->engine_type;
 				}
-			}
-			u->railtype = rvi_u->railtype;
+			}*/
+		const RailVehicleInfo *rvi_u = RailVehInfo(u->engine_type);
+		assert(u->First() == this);
 
+		u->gcache.first_engine = ConsistFirstEngine(this, u);
 
-			/* Set user defined data to its default value */
-			u->tcache.user_def_data = rvi_u->user_def_data;
-			this->InvalidateNewGRFCache();
-			last->InvalidateNewGRFCache();
-			u->InvalidateNewGRFCache();
-		}
+		u->railtype = rvi_u->railtype;
+
+		/* Set user defined data to its default value */
+		u->tcache.user_def_data = rvi_u->user_def_data;
+		this->InvalidateNewGRFCache();
+		last->InvalidateNewGRFCache();
+		u->InvalidateNewGRFCache();
 	}
 
 	for (Train *u = this; u != nullptr; u = u->Next()) {
@@ -164,11 +200,11 @@ bool Train::ConsistChanged(ConsistChangeFlags allowed_changes)
 		u->InvalidateNewGRFCache();
 	}
 
-	/*if (allowed_changes & CCF_IMMUTABLE) {
+	if (allowed_changes & CCF_IMMUTABLE) {
 		for (Train *u = this; u != nullptr; u = u->Next()) {
 			StoreImmutableVariables(u);
 		}
-	}*/
+	}
 
 	for (Train *u = this; u != nullptr; u = u->Next()) {
 		const Engine *e_u = u->GetEngine();
