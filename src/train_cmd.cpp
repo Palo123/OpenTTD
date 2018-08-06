@@ -150,7 +150,6 @@ bool Train::ConsistChanged(ConsistChangeFlags allowed_changes)
 
 	assert(this->IsFrontEngine() || this->IsFreeWagon() || this->IsFrontWagon());
 
-	const RailVehicleInfo *rvi_v = RailVehInfo(this->engine_type);
 	EngineID first_engine = this->IsFrontEngine() ? this->engine_type : INVALID_ENGINE;
 	EngineID last_engine = last->IsEngine() || last->IsRearDualheaded() ||
 							(last->IsArticulatedPart() && last->GetFirstEnginePart()->IsEngine())
@@ -209,6 +208,7 @@ bool Train::ConsistChanged(ConsistChangeFlags allowed_changes)
 	for (Train *u = this; u != nullptr; u = u->Next()) {
 		const Engine *e_u = u->GetEngine();
 		const RailVehicleInfo *rvi_u = &e_u->u.rail;
+		const RailVehicleInfo *rvi_v = RailVehInfo(u->gcache.first_engine);
 
 		if (!HasBit(e_u->info.misc_flags, EF_RAIL_TILTS)) train_can_tilt = false;
 
