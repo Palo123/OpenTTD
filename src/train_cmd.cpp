@@ -208,7 +208,7 @@ bool Train::ConsistChanged(ConsistChangeFlags allowed_changes)
 	for (Train *u = this; u != nullptr; u = u->Next()) {
 		const Engine *e_u = u->GetEngine();
 		const RailVehicleInfo *rvi_u = &e_u->u.rail;
-		const RailVehicleInfo *rvi_v = RailVehInfo(u->gcache.first_engine);
+		const RailVehicleInfo *rvi_v = u->gcache.first_engine == INVALID_ENGINE ? rvi_u : RailVehInfo(u->gcache.first_engine);
 
 		if (!HasBit(e_u->info.misc_flags, EF_RAIL_TILTS)) train_can_tilt = false;
 
