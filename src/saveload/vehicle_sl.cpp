@@ -387,7 +387,11 @@ void AfterLoadVehicles(bool part_of_load)
 				Train *t = Train::From(v);
 				if (t->IsFrontEngine() || t->IsFreeWagon() || t->IsFrontWagon()) {
 					t->gcache.last_speed = t->cur_speed; // update displayed train speed
-					t->ConsistChanged(CCF_SAVELOAD);
+					if (IsSavegameVersionBefore(200)) {
+						t->ConsistChanged(CCF_ARRANGE);
+					} else {
+						t->ConsistChanged(CCF_SAVELOAD);
+					}
 				}
 				break;
 			}
@@ -729,6 +733,10 @@ const SaveLoad *GetVehicleDescription(VehicleType vt)
 		SLE_CONDNULL(2, SLV_2, SLV_60),
 
 		 SLE_CONDVAR(Train, wait_counter,        SLE_UINT16,                 SLV_136, SL_MAX_VERSION),
+
+		 SLE_CONDVAR(Train, parent_local_id,     SLE_UINT32,                 SLV_200, SL_MAX_VERSION),
+		 SLE_CONDVAR(Train, parent_cargo_subtype,SLE_UINT32,                 SLV_200, SL_MAX_VERSION),
+		 SLE_CONDVAR(Train, first_engine_type,   SLE_UINT16,                 SLV_200, SL_MAX_VERSION),
 
 		SLE_CONDNULL(2, SLV_2, SLV_20),
 		 SLE_CONDVAR(Train, gv_flags,            SLE_UINT16,                 SLV_139, SL_MAX_VERSION),

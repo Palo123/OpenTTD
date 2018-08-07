@@ -150,10 +150,6 @@ bool Train::ConsistChanged(ConsistChangeFlags allowed_changes)
 
 	assert(this->IsFrontEngine() || this->IsFreeWagon() || this->IsFrontWagon());
 
-	EngineID first_engine = this->IsFrontEngine() ? this->engine_type : INVALID_ENGINE;
-	EngineID last_engine = last->IsEngine() || last->IsRearDualheaded() ||
-							(last->IsArticulatedPart() && last->GetFirstEnginePart()->IsEngine())
-							? last->engine_type : INVALID_ENGINE;
 	this->gcache.cached_total_length = 0;
 	this->compatible_railtypes = RAILTYPES_NONE;
 
@@ -181,20 +177,15 @@ bool Train::ConsistChanged(ConsistChangeFlags allowed_changes)
 		const RailVehicleInfo *rvi_u = RailVehInfo(u->engine_type);
 		assert(u->First() == this);
 
-		u->gcache.first_engine = ConsistFirstEngine(this, u);
+		if (allowed_changes & CCF_IMMUTABLE) {
+			u->first_engine_type = ConsistFirstEngine(this, u);
+		}
+		u->gcache.first_engine = u->first_engine_type;
 
 		u->railtype = rvi_u->railtype;
 
 		/* Set user defined data to its default value */
 		u->tcache.user_def_data = rvi_u->user_def_data;
-		this->InvalidateNewGRFCache();
-		last->InvalidateNewGRFCache();
-		u->InvalidateNewGRFCache();
-	}
-
-	for (Train *u = this; u != nullptr; u = u->Next()) {
-		/* Update user defined data (must be done before other properties) */
-		u->tcache.user_def_data = GetVehicleProperty(u, PROP_TRAIN_USER_DATA, u->tcache.user_def_data);
 		this->InvalidateNewGRFCache();
 		u->InvalidateNewGRFCache();
 	}
@@ -203,6 +194,13 @@ bool Train::ConsistChanged(ConsistChangeFlags allowed_changes)
 		for (Train *u = this; u != nullptr; u = u->Next()) {
 			StoreImmutableVariables(u);
 		}
+	}
+
+	for (Train *u = this; u != nullptr; u = u->Next()) {
+		/* Update user defined data (must be done before other properties) */
+		u->tcache.user_def_data = GetVehicleProperty(u, PROP_TRAIN_USER_DATA, u->tcache.user_def_data);
+		this->InvalidateNewGRFCache();
+		u->InvalidateNewGRFCache();
 	}
 
 	for (Train *u = this; u != nullptr; u = u->Next()) {
