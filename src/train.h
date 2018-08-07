@@ -93,6 +93,7 @@ struct Train FINAL : public GroundVehicle<Train, VEH_TRAIN> {
 
 	uint32 parent_local_id;
 	uint32 parent_cargo_subtype;
+	uint32 parent_consist_cargo;
 	
 	EngineID first_engine_type;
 

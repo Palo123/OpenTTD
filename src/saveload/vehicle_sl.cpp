@@ -736,6 +736,7 @@ const SaveLoad *GetVehicleDescription(VehicleType vt)
 
 		 SLE_CONDVAR(Train, parent_local_id,     SLE_UINT32,                 SLV_200, SL_MAX_VERSION),
 		 SLE_CONDVAR(Train, parent_cargo_subtype,SLE_UINT32,                 SLV_200, SL_MAX_VERSION),
+		 SLE_CONDVAR(Train, parent_consist_cargo,SLE_UINT32,                 SLV_200, SL_MAX_VERSION),
 		 SLE_CONDVAR(Train, first_engine_type,   SLE_UINT16,                 SLV_200, SL_MAX_VERSION),
 
 		SLE_CONDNULL(2, SLV_2, SLV_20),

@@ -353,6 +353,7 @@ static byte MapAircraftMovementAction(const Aircraft *v)
 		case VSG_SCOPE_SELF:   return &this->self_scope;
 		case VSG_SCOPE_PARENT: return &this->parent_scope;
 		case VSG_SCOPE_RELATIVE: {
+			DEBUG(misc, 0, "relative scope");
 			int32 count = GB(relative, 0, 4);
 			if (this->self_scope.v != nullptr && (relative != this->cached_relative_count || count == 0)) {
 				/* Note: This caching only works as long as the VSG_SCOPE_RELATIVE cannot be used in
@@ -450,7 +451,7 @@ static uint32 PositionHelper(const Vehicle *v, bool consecutive)
 static uint32 VehicleGetVariable(Vehicle *v, const VehicleScopeResolver *object, byte variable, uint32 parameter, bool *available)
 {
 	if (v->type == VEH_TRAIN) {
-		if (object->var_scope == VSG_SCOPE_PARENT) DEBUG(misc, 0, "vehicle: %d, NewGRF variable: %x, parent active", v->First()->unitnumber, variable);
+		if (object->var_scope == VSG_SCOPE_PARENT) DEBUG(misc, 0, "vehicle: %d, NewGRF variable: %x, par: %d, parent active", v->First()->unitnumber, variable, parameter);
 		if (object->var_scope == VSG_SCOPE_SELF) DEBUG(misc, 1, "vehicle: %d, NewGRF variable: %x, self active", v->First()->unitnumber, variable);
 		if (object->var_scope == VSG_SCOPE_RELATIVE) DEBUG(misc, 0, "vehicle: %d, NewGRF variable: %x, relative active", v->First()->unitnumber, variable);
 	}
@@ -696,11 +697,15 @@ static uint32 VehicleGetVariable(Vehicle *v, const VehicleScopeResolver *object,
 			 */
 			if (!v->IsGroundVehicle()) return 0;
 
-			const Vehicle *u = v->Move((int8)parameter);
+			int8 move = parameter;
+			if (v->type == VEH_TRAIN && HasBit(Train::From(v)->flags, VRF_REVERSE_DIRECTION)) {
+				move = -move;
+			}
+			const Vehicle *u = v->Move(move);
 			if (u == nullptr) return 0;
 
 			/* Get direction difference. */
-			bool prev = (int8)parameter < 0;
+			bool prev = move;
 			uint32 ret = prev ? DirDifference(u->direction, v->direction) : DirDifference(v->direction, u->direction);
 			if (ret > DIRDIFF_REVERSE) ret |= 0x08;
 
@@ -908,6 +913,7 @@ uint32 GetImmutableVariableIfAvailable(const Train *t, const VehicleScopeResolve
 		switch (variable) {
 			case 0xC6: return t->parent_local_id;
 			case 0xF2: return t->parent_cargo_subtype;
+			case 0x42: return t->parent_consist_cargo;
 			default:
 				*available = false;
 				return UINT_MAX;
@@ -973,6 +979,7 @@ void StoreImmutableVariables(Vehicle *v)
 
 	t->parent_local_id      = VehicleGetVariable(parent, &object.parent_scope, 0xC6, 0, nullptr);
 	t->parent_cargo_subtype = VehicleGetVariable(parent, &object.parent_scope, 0xF2, 0, nullptr);
+	t->parent_consist_cargo = VehicleGetVariable(parent, &object.parent_scope, 0x42, 0, nullptr);
 }
 
 
