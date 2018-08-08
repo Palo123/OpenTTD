@@ -146,7 +146,6 @@ EngineID ConsistFirstEngine(Train *head, Train *u)
 bool Train::ConsistChanged(ConsistChangeFlags allowed_changes)
 {
 	uint16 max_speed = UINT16_MAX;
-	Train *last = this->Last();
 
 	assert(this->IsFrontEngine() || this->IsFreeWagon() || this->IsFrontWagon());
 
@@ -155,25 +154,7 @@ bool Train::ConsistChanged(ConsistChangeFlags allowed_changes)
 
 	bool train_can_tilt = true;
 
-	//for (int reverse_order = 0; reverse_order < 2; reverse_order++) {
 	for (Train *u = this; u != nullptr; u = u->Next()) {
-			/* Check the this->first cache. */
-
-
-			/* update the 'first engine' */
-			/*if (reverse_order) {
-				if (HasBit(u->flags, VRF_REVERSE_DIRECTION)) {
-					u->gcache.first_engine = last == u ? INVALID_ENGINE : last_engine;
-					if (u->IsEngine() || u->IsRearDualheaded() ||
-						(u->GetLastEnginePart() == u && u->GetFirstEnginePart()->IsEngine()))
-						last_engine = u->engine_type;
-				}
-			} else {
-				if (!HasBit(u->flags, VRF_REVERSE_DIRECTION)) {
-					u->gcache.first_engine = this == u ? INVALID_ENGINE : first_engine;
-					if (u->IsEngine()) first_engine = u->engine_type;
-				}
-			}*/
 		const RailVehicleInfo *rvi_u = RailVehInfo(u->engine_type);
 		assert(u->First() == this);
 
@@ -486,7 +467,7 @@ int Train::GetCurrentMaxSpeed() const
 
 	max_speed = min(max_speed, this->current_order.GetMaxSpeed());
 	if (this->current_order.IsType(OT_GOTO_COUPLE)) max_speed = min(max_speed, 40);
-	if (this->IsFrontWagon()) max_speed = min(max_speed, 50);
+	if (this->IsFrontWagon() && !HasBit(this->flags, VRF_POWEREDWAGON)) max_speed = min(max_speed, 50);
 	return min(max_speed, this->gcache.cached_max_track_speed);
 }
 
