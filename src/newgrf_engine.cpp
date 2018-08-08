@@ -353,7 +353,6 @@ static byte MapAircraftMovementAction(const Aircraft *v)
 		case VSG_SCOPE_SELF:   return &this->self_scope;
 		case VSG_SCOPE_PARENT: return &this->parent_scope;
 		case VSG_SCOPE_RELATIVE: {
-			DEBUG(misc, 0, "relative scope");
 			int32 count = GB(relative, 0, 4);
 			if (this->self_scope.v != nullptr && (relative != this->cached_relative_count || count == 0)) {
 				/* Note: This caching only works as long as the VSG_SCOPE_RELATIVE cannot be used in
@@ -365,13 +364,22 @@ static byte MapAircraftMovementAction(const Aircraft *v)
 					default: NOT_REACHED();
 					case 0x00: // count back (away from the engine), starting at this vehicle
 						v = this->self_scope.v;
+						if (v->type == VEH_TRAIN && HasBit(Train::From(v)->flags, VRF_REVERSE_DIRECTION)) {
+							count = -count;
+						}
 						break;
 					case 0x01: // count forward (toward the engine), starting at this vehicle
 						v = this->self_scope.v;
-						count = -count;
+						if (v->type != VEH_TRAIN || !HasBit(Train::From(v)->flags, VRF_REVERSE_DIRECTION)) {
+							count = -count;
+						}
 						break;
 					case 0x02: // count back, starting at the engine
 						v = this->parent_scope.v;
+						if (v->type == VEH_TRAIN && HasBit(Train::From(v)->flags, VRF_REVERSE_DIRECTION)) {
+							count = -count;
+							v = v->Last();
+						}
 						break;
 					case 0x03: { // count back, starting at the first vehicle in this chain of vehicles with the same ID, as for vehicle variable 41
 						const Vehicle *self = this->self_scope.v;
@@ -450,11 +458,11 @@ static uint32 PositionHelper(const Vehicle *v, bool consecutive)
 
 static uint32 VehicleGetVariable(Vehicle *v, const VehicleScopeResolver *object, byte variable, uint32 parameter, bool *available)
 {
-	if (v->type == VEH_TRAIN) {
+	/*if (v->type == VEH_TRAIN) {
 		if (object->var_scope == VSG_SCOPE_PARENT) DEBUG(misc, 0, "vehicle: %d, NewGRF variable: %x, par: %d, parent active", v->First()->unitnumber, variable, parameter);
 		if (object->var_scope == VSG_SCOPE_SELF) DEBUG(misc, 1, "vehicle: %d, NewGRF variable: %x, self active", v->First()->unitnumber, variable);
 		if (object->var_scope == VSG_SCOPE_RELATIVE) DEBUG(misc, 0, "vehicle: %d, NewGRF variable: %x, relative active", v->First()->unitnumber, variable);
-	}
+	}*/
 	
 	/* Calculated vehicle parameters */
 	switch (variable) {
