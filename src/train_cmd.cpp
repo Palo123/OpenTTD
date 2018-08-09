@@ -4130,7 +4130,7 @@ static void Couple(Train *v, Train *u, bool train_u_reversed)
 		u = u->First();
 	}
 	v->IncrementImplicitOrderIndex();
-	//ProcessOrders(v);
+	ProcessOrders(v);
 	ReverseTrainDirection(v);
 	v = v->First();
 
@@ -4174,6 +4174,7 @@ static void Couple(Train *v, Train *u, bool train_u_reversed)
 	
 	AdvanceWagonsAfterCouple(v_last);
 	InvalidateWindowClassesData(WC_TRAINS_LIST, 0);
+	if (CheckReverseTrain(v)) SetBit(v->flags, VRF_REVERSING);
 }
 
 static Train *GetCouplePosition(Train *v, bool &reverse)
