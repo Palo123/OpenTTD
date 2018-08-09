@@ -2169,12 +2169,18 @@ void InheritWaitForCoupleOrders(Train *v, Train *u)
 	Order *station_order = new Order();
 	Order *station_decouple_order = new Order();
 	Order *wait_for_couple_order = new Order();
+	Order *copy_destination = NULL;
 
 	station_order->AssignOrder(v->current_order);
 	station_decouple_order->AssignOrder(*v->orders.list->GetOrderAt(v->cur_implicit_order_index + 1));
 	wait_for_couple_order->MakeWaitCouple();
 
 	OrderIDStack next_station = v->orders.list->GetNextStoppingOrder(v);
+	if (!next_station.IsEmpty() && Order::CanAllocateItem()) {
+		copy_destination = new Order();
+		copy_destination->AssignOrder(*Order::Get(next_station.Pop()));
+		copy_destination->SetDecouple(ODF_NOTHING);
+	}
 	if (v == u) DeleteVehicleOrders(v, false, true);
 
 	if (u->orders.list == nullptr && !OrderList::CanAllocateItem()) return;
@@ -2182,13 +2188,7 @@ void InheritWaitForCoupleOrders(Train *v, Train *u)
 	InsertOrder(u, station_order, 0);
 	InsertOrder(u, station_decouple_order, 1);
 	InsertOrder(u, wait_for_couple_order, 2);
-
-	if (next_station.IsEmpty() || !Order::CanAllocateItem()) return;
-
-	Order *copy_destination = new Order();
-	copy_destination->AssignOrder(*Order::Get(next_station.Pop()));
-	copy_destination->SetDecouple(ODF_NOTHING);
-	InsertOrder(u, copy_destination, 3);
+	if (copy_destination != NULL) InsertOrder(u, copy_destination, 3);
 }
 
 void CreateWaitForCoupleOrder(Train *v)
