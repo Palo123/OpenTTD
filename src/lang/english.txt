@@ -4075,7 +4075,8 @@ STR_ORDER_NO_UNLOAD_FULL_LOAD_ANY                               :(No unloading a
 STR_ORDER_NO_UNLOAD_NO_LOAD                                     :(No unloading and no loading)
 
 STR_ORDER_DECOUPLE                                              :(Decouple)
-STR_ORDER_DECOUPLE_DETAILS                                      :[Decouple {COMMA} units] First part {STRING} Second part {STRING}
+STR_ORDER_DECOUPLE_DETAILS                                      :[Decouple and keep {COMMA} units] First part {STRING} Second part {STRING}
+STR_ORDER_DECOUPLE_DETAILS_AUTO                                 :[Decouple and keep {COMMA}(auto) units] First part {STRING} Second part {STRING}
 
 STR_ORDER_COUPLE_UNITS                                          :(with {COMMA} units)
 

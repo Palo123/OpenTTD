@@ -193,7 +193,13 @@ struct Train FINAL : public GroundVehicle<Train, VEH_TRAIN> {
 	
 	inline const Train* GetMainArticulatedPart() const
 	{
-		if (!this->HasArticulatedPart() || !HasBit(this->flags, VRF_REVERSE_DIRECTION)) return this;
+		if (!HasBit(this->flags, VRF_REVERSE_DIRECTION)) return this->GetFirstEnginePart();
+		return this->GetLastEnginePart();
+	}
+
+	inline Train* GetMainArticulatedPart()
+	{
+		if (!HasBit(this->flags, VRF_REVERSE_DIRECTION)) return this->GetFirstEnginePart();
 		return this->GetLastEnginePart();
 	}
 

@@ -389,9 +389,9 @@ void DrawOrderString(const Vehicle *v, const Order *order, int order_index, int 
 			break;
 			
 		case OT_DECOUPLE: {
-			SetDParam(0, STR_ORDER_DECOUPLE_DETAILS);
 			uint num_d = order->GetNumDecouple();
-			SetDParam(1, num_d == 0 ? 1 : num_d);
+			SetDParam(0, num_d == 0 ? STR_ORDER_DECOUPLE_DETAILS_AUTO : STR_ORDER_DECOUPLE_DETAILS);
+			SetDParam(1, num_d);
 			SetDParam(2, STR_ORDER_DECOUPLE_KEEP_ORDERS + order->GetDecoupleFirstOrdersType());
 			SetDParam(3, STR_ORDER_DECOUPLE_KEEP_ORDERS + order->GetDecoupleSecondOrdersType());
 			break;
@@ -1550,7 +1550,7 @@ public:
 				}
 				DoCommandP(this->vehicle->tile, this->vehicle->index + (sel << 20), MOF_COND_VALUE | Clamp(value, 0, 2047) << 8, CMD_MODIFY_ORDER | CMD_MSG(STR_ERROR_CAN_T_MODIFY_THIS_ORDER));
 			} else if (this->vehicle->GetOrder(sel)->IsType(OT_DECOUPLE)) {
-				DoCommandP(this->vehicle->tile, this->vehicle->index + (sel << 20), MOF_DECOUPLE_VALUE | Clamp(value, 1, 127) << 8, CMD_MODIFY_ORDER | CMD_MSG(STR_ERROR_CAN_T_MODIFY_THIS_ORDER));
+				DoCommandP(this->vehicle->tile, this->vehicle->index + (sel << 20), MOF_DECOUPLE_VALUE | Clamp(value, 0, 127) << 8, CMD_MODIFY_ORDER | CMD_MSG(STR_ERROR_CAN_T_MODIFY_THIS_ORDER));
 			} else {
 				DoCommandP(this->vehicle->tile, this->vehicle->index + (sel << 20), MOF_COUPLE_VALUE | Clamp(value, 0, 127) << 8, CMD_MODIFY_ORDER | CMD_MSG(STR_ERROR_CAN_T_MODIFY_THIS_ORDER));
 			}

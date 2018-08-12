@@ -1042,12 +1042,19 @@ static CommandCost CheckTrainAttachment(Train *t)
 
 		Train *next = t->Next();
 
+		bool main_part = false;
+		if (!HasBit(t->flags, VRF_REVERSE_DIRECTION)) {
+			if (!t->IsArticulatedPart()) main_part = true;
+		} else {
+			if (!t->HasArticulatedPart()) main_part = true;
+		}
+
 		/* Unlink the to-be-added piece; it is already unlinked from the previous
 		 * part due to the fact that the prev -> t link is broken. */
 		t->SetNext(nullptr);
 
 		/* Don't check callback for articulated or rear dual headed parts */
-		if (!t->IsArticulatedPart() && !t->IsRearDualheaded()) {
+		if (main_part && !t->IsRearDualheaded()) {
 			/* Back up and clear the first_engine data to avoid using wagon override group */
 			EngineID first_engine = t->gcache.first_engine;
 			t->gcache.first_engine = INVALID_ENGINE;
@@ -2112,12 +2119,44 @@ static bool CanDecouple(Train *v)
 	return true;
 }
 
+uint GetDecoupleVehicleAuto(Train *v)
+{
+	uint engines_front = 0;
+	uint engines_back = 0;
+	uint pos = 1;
+	bool has_wagons = false;
+	bool multihead_front = false;
+	for (Train *t = v; t != nullptr; t = t->GetNextVehicle(), pos++) {
+		if (t->IsEngine()) {
+			if (t->IsMultiheaded()) {
+				if (multihead_front) {
+					return pos;
+				}
+				multihead_front = true;
+			}
+			if (has_wagons) {
+				engines_back++;
+			} else {
+				engines_front++;
+			}
+		} else {
+			has_wagons = true;
+		}
+	}
+	if (engines_front > 0 && has_wagons) return engines_front;
+	if (engines_back > 0 && has_wagons) return CountVehiclesInVehicles(v) - engines_back;
+	return 1;
+}
+
 static Train *GetDecoupleVehicle(Train *v)
 {
+	Order *decouple_order = v->orders.list->GetOrderAt(v->cur_implicit_order_index + 1);
+	uint num_decouple = decouple_order->GetNumDecouple();
+	if (num_decouple == 0) num_decouple = GetDecoupleVehicleAuto(v);
 	Train *ret = v->GetNextVehicle();
 	bool multihead_front = v->IsMultiheaded();
-	Order *decouple_order = v->orders.list->GetOrderAt(v->cur_implicit_order_index + 1);
-	for (int i = 1; i < decouple_order->GetNumDecouple() && ret->GetNextVehicle() != nullptr; i++) {
+	
+	for (uint i = 1; i < num_decouple && ret->GetNextVehicle() != nullptr; i++) {
 		if (multihead_front) {
 			if (ret->IsRearDualheaded()) multihead_front = false;
 		} else {
@@ -2169,7 +2208,7 @@ void InheritWaitForCoupleOrders(Train *v, Train *u)
 	Order *station_order = new Order();
 	Order *station_decouple_order = new Order();
 	Order *wait_for_couple_order = new Order();
-	Order *copy_destination = NULL;
+	Order *copy_destination = nullptr;
 
 	station_order->AssignOrder(v->current_order);
 	station_decouple_order->AssignOrder(*v->orders.list->GetOrderAt(v->cur_implicit_order_index + 1));
@@ -2188,7 +2227,7 @@ void InheritWaitForCoupleOrders(Train *v, Train *u)
 	InsertOrder(u, station_order, 0);
 	InsertOrder(u, station_decouple_order, 1);
 	InsertOrder(u, wait_for_couple_order, 2);
-	if (copy_destination != NULL) InsertOrder(u, copy_destination, 3);
+	if (copy_destination != nullptr) InsertOrder(u, copy_destination, 3);
 }
 
 void CreateWaitForCoupleOrder(Train *v)

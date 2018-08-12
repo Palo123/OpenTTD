@@ -1001,7 +1001,7 @@ void CallVehicleTicks()
 				/* Check vehicle type specifics */
 				switch (v->type) {
 					case VEH_TRAIN:
-						if (Train::From(v)->IsWagon()) continue;
+						if (Train::From(v)->IsWagon() && !Train::From(v)->IsFrontWagon()) continue;
 						break;
 
 					case VEH_ROAD:
