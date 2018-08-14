@@ -171,17 +171,17 @@ bool Train::ConsistChanged(ConsistChangeFlags allowed_changes)
 		u->InvalidateNewGRFCache();
 	}
 
-	if (allowed_changes & CCF_IMMUTABLE) {
-		for (Train *u = this; u != nullptr; u = u->Next()) {
-			StoreImmutableVariables(u);
-		}
-	}
-
 	for (Train *u = this; u != nullptr; u = u->Next()) {
 		/* Update user defined data (must be done before other properties) */
 		u->tcache.user_def_data = GetVehicleProperty(u, PROP_TRAIN_USER_DATA, u->tcache.user_def_data);
 		this->InvalidateNewGRFCache();
 		u->InvalidateNewGRFCache();
+	}
+
+	if (allowed_changes & CCF_IMMUTABLE) {
+		for (Train *u = this; u != nullptr; u = u->Next()) {
+			StoreImmutableVariables(u);
+		}
 	}
 
 	for (Train *u = this; u != nullptr; u = u->Next()) {
