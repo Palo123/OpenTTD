@@ -569,9 +569,9 @@ static int32 NPFFindSafeTile(const AyStar *as, const OpenListNode *current)
 				AYSTAR_FOUND_END_NODE : AYSTAR_DONE;
 }
 
-static int32 NPFFindCoupleTrain(AyStar *as, OpenListNode *current)
+static int32 NPFFindCoupleTrain(const AyStar *as, const OpenListNode *current)
 {
-	AyStarNode *node = &current->path.node;
+	const AyStarNode *node = &current->path.node;
 	TileIndex tile = node->tile;
 	Trackdir td = node->direction;
 	

@@ -387,7 +387,7 @@ void AfterLoadVehicles(bool part_of_load)
 				Train *t = Train::From(v);
 				if (t->IsFrontEngine() || t->IsFreeWagon() || t->IsFrontWagon()) {
 					t->gcache.last_speed = t->cur_speed; // update displayed train speed
-					if (IsSavegameVersionBefore(200)) {
+					if (IsSavegameVersionBefore(SLV_200)) {
 						t->ConsistChanged(CCF_ARRANGE);
 					} else {
 						t->ConsistChanged(CCF_SAVELOAD);

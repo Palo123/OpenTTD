@@ -3141,9 +3141,8 @@ bool AfterLoadGame()
 		for (Station *st : Station::Iterate()) UpdateStationAcceptance(st, false);
 	}
 	
-	if (IsSavegameVersionBefore(200)) {
-		Vehicle *v;
-		FOR_ALL_VEHICLES(v) {
+	if (IsSavegameVersionBefore(SLV_200)) {
+		for (Vehicle *v : Vehicle::Iterate()) {
 			Order *o;
 			int num_order = 1;
 			FOR_VEHICLE_ORDERS(v, o) {
