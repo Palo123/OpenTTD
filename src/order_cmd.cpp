@@ -448,7 +448,7 @@ OrderIDStack OrderList::GetNextStoppingOrder(const Vehicle *v, const Order *firs
 		next = this->GetOrderAt(v->cur_implicit_order_index);
 		if (next == nullptr) {
 			next = this->GetFirstOrder();
-			if (next == nullptr) return INVALID_STATION;
+			if (next == nullptr) return INVALID_ORDER;
 		} else {
 			/* GetNext never returns nullptr if there is a valid station in the list.
 			 * As the given "next" is already valid and a station in the list, we
@@ -473,10 +473,10 @@ OrderIDStack OrderList::GetNextStoppingOrder(const Vehicle *v, const Order *firs
 			} else if (skip_to == nullptr || skip_to == first) {
 				next = (advance == first) ? nullptr : advance;
 			} else {
-				StationIDStack st1 = this->GetNextStoppingOrder(v, skip_to, hops);
-				StationIDStack st2 = this->GetNextStoppingOrder(v, advance, hops);
-				while (!st2.IsEmpty()) st1.Push(st2.Pop());
-				return st1;
+				OrderIDStack or1 = this->GetNextStoppingOrder(v, skip_to, hops);
+				OrderIDStack or2 = this->GetNextStoppingOrder(v, advance, hops);
+				while (!or2.IsEmpty()) or1.Push(or2.Pop());
+				return or1;
 			}
 			++hops;
 		}
@@ -485,7 +485,7 @@ OrderIDStack OrderList::GetNextStoppingOrder(const Vehicle *v, const Order *firs
 		if (next == nullptr || ((next->IsType(OT_GOTO_STATION) || next->IsType(OT_IMPLICIT)) &&
 				next->GetDestination() == v->last_station_visited &&
 				(next->GetUnloadType() & (OUFB_TRANSFER | OUFB_UNLOAD)) != 0)) {
-			return INVALID_STATION;
+			return INVALID_ORDER;
 		}
 	} while (next->IsType(OT_GOTO_DEPOT) || next->GetDestination() == v->last_station_visited);
 
