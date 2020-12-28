@@ -46,8 +46,8 @@ struct FindTrainOnTrackInfo {
 	Train *best;     ///< The currently "best" vehicle we have found.
 	Train *second_best; ///< Maybe there are 2 trains
 
-	/** Init the best location to NULL always! */
-	FindTrainOnTrackInfo() : best(NULL), second_best(NULL) {}
+	/** Init the best location to nullptr always! */
+	FindTrainOnTrackInfo() : best(nullptr), second_best(nullptr) {}
 };
 
 /** Callback for Has/FindVehicleOnPos to find a train on a specific track. */
@@ -55,20 +55,20 @@ static Vehicle *FindTrainOnTrackEnum(Vehicle *v, void *data)
 {
 	FindTrainOnTrackInfo *info = (FindTrainOnTrackInfo *)data;
 
-	if (v->type != VEH_TRAIN || (v->vehstatus & VS_CRASHED)) return NULL;
+	if (v->type != VEH_TRAIN || (v->vehstatus & VS_CRASHED)) return nullptr;
 
 	Train *t = Train::From(v);
 	if (t->track == TRACK_BIT_WORMHOLE || HasBit((TrackBits)t->track, TrackdirToTrack(info->res))) {
 		t = t->First();
 
 		/* We assume only presence of the train, we shouldn't use train itself because of desync */
-		if (info->best != NULL && t->index != info->best->index) info->second_best = t;
+		if (info->best != nullptr && t->index != info->best->index) info->second_best = t;
 		/* ALWAYS return the lowest ID (anti-desync!) */
-		if (info->best == NULL || t->index < info->best->index) info->best = t;
+		if (info->best == nullptr || t->index < info->best->index) info->best = t;
 		return t;
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 template <class Types>
@@ -119,18 +119,18 @@ private:
 				}
 			}
 			FindVehicleOnPos(tile, &ftoti, FindTrainOnTrackEnum);
-			if (ftoti.best != NULL) {
+			if (ftoti.best != nullptr) {
 				Train *t = ftoti.best;
 				if (!t->current_order.IsType(OT_WAIT_COUPLE)) {
 					return false;
 				}
-				if (ftoti.second_best != NULL) {
+				if (ftoti.second_best != nullptr) {
 					return false;
 				}
 				// look behind station too
-				Vehicle *other_train = NULL;
+				Vehicle *other_train = nullptr;
 				FollowTrainReservation(t, tile, td, &other_train);
-				if (other_train != NULL) {
+				if (other_train != nullptr) {
 					return false;
 				}
 			}
@@ -223,7 +223,7 @@ public:
 	
 	inline bool CheckSafePositionOnNode(Node *node)
 	{
-		assert(node->m_parent != NULL);
+		assert(node->m_parent != nullptr);
 		
 		/* We will never pass more than two signals, no need to check for a safe tile. */
 		if (node->m_parent->m_num_signals_passed >= 2) return false;
@@ -523,8 +523,8 @@ public:
 
 		/* Walk through the path back to the origin. */
 		Trackdir next_trackdir = INVALID_TRACKDIR;
-		Node *pPrev = NULL;
-		while (pNode->m_parent != NULL) {
+		Node *pPrev = nullptr;
+		while (pNode->m_parent != nullptr) {
 			pPrev = pNode;
 			pNode = pNode->m_parent;
 
@@ -533,7 +533,7 @@ public:
 		
 		next_trackdir = pPrev->GetTrackdir();
 		if (!dont_reserve) {
-			return this->TryReservePath(NULL, pNode->GetLastTile(), true) ? next_trackdir : INVALID_TRACKDIR;
+			return this->TryReservePath(nullptr, pNode->GetLastTile(), true) ? next_trackdir : INVALID_TRACKDIR;
 		}
 
 		return next_trackdir;

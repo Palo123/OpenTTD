@@ -1100,7 +1100,7 @@ public:
 		} else {
 			this->SetWidgetDisabledState(WID_O_FULL_LOAD, (order->GetNonStopType() & ONSF_NO_STOP_AT_DESTINATION_STATION) != 0); // full load
 			this->SetWidgetDisabledState(WID_O_UNLOAD,    (order->GetNonStopType() & ONSF_NO_STOP_AT_DESTINATION_STATION) != 0); // unload
-			if (row_sel == NULL) {
+			if (row_sel == nullptr) {
 				this->SetWidgetDisabledState(WID_O_DECOUPLE,  (order->GetNonStopType() & ONSF_NO_STOP_AT_DESTINATION_STATION) != 0); // decouple
 				this->RaiseWidget(WID_O_DECOUPLE);
 			}

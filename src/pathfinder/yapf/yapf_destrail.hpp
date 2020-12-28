@@ -246,7 +246,7 @@ public:
 	{
 		if (!dest_order.HasCoupleCargoType()) return true;
 		CargoID cargo_type = dest_order.GetCoupleCargoType();
-		for (Train *v = t; v != NULL; v = v->Next()) {
+		for (Train *v = t; v != nullptr; v = v->Next()) {
 			if (v->cargo_type == cargo_type) return true;
 		}
 		return false;
@@ -265,7 +265,7 @@ public:
 		if (!HasReservedTracks(tile, TrackdirBitsToTrackBits(tdb))) return false;
 		if (!IsRailStationTile(tile)) return false;
 		Train *t = GetTrainForReservation(tile, TrackdirToTrack(td));
-		if (t == NULL) return false;
+		if (t == nullptr) return false;
 		if (t->current_order.IsType(OT_WAIT_COUPLE)) {
 			if (TrainFitStation(t) && CheckOrderLoad(t) && CheckOrderCargoType(t) && CheckNumberOfWagons(t)) return true;
 		}

@@ -3148,7 +3148,7 @@ bool AfterLoadGame()
 			int num_order = 1;
 			FOR_VEHICLE_ORDERS(v, o) {
 				if (o->IsType(OT_GOTO_STATION) && o->GetDecouple() == ODF_DECOUPLE) {
-					if (o->next != NULL && !o->next->IsType(OT_DECOUPLE)) {
+					if (o->next != nullptr && !o->next->IsType(OT_DECOUPLE)) {
 						if (Order::CanAllocateItem()) {
 							Order *new_order = new Order();
 							new_order->MakeDecouple();

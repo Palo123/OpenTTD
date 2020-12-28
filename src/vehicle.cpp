@@ -707,7 +707,7 @@ uint CountVehiclesInChain(const Vehicle *v)
 uint CountVehiclesInVehicles(const Vehicle *v)
 {
 	uint count = 0;
-	do count++; while ((v = v->GetNextVehicle()) != NULL);
+	do count++; while ((v = v->GetNextVehicle()) != nullptr);
 	return count;
 }
 
@@ -2280,7 +2280,7 @@ void Vehicle::HandleLoading(bool mode)
 
 	this->IncrementImplicitOrderIndex();
 	const Order *decouple_order = this->GetOrder(this->cur_implicit_order_index);
-	if (decouple_order != NULL && decouple_order->IsType(OT_DECOUPLE)) this->IncrementImplicitOrderIndex();
+	if (decouple_order != nullptr && decouple_order->IsType(OT_DECOUPLE)) this->IncrementImplicitOrderIndex();
 }
 
 /**
